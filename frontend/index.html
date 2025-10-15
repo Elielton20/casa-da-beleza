@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Casa da Beleza - Sua loja de cosméticos</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+        <!-- Modal do Carrinho -->
+    <div id="cart-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Meu Carrinho</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            
+            <div id="empty-cart">
+                <i class="fas fa-shopping-cart" style="font-size: 4rem; margin-bottom: 1rem; color: #ccc;"></i>
+                <h3>Seu carrinho está vazio</h3>
+                <p>Adicione produtos para ver aqui</p>
+            </div>
+            
+            <div id="cart-content" style="display: none;">
+                <div id="cart-items" class="cart-items">
+                    <!-- Itens do carrinho serão inseridos aqui -->
+                </div>
+                
+                <div class="cart-summary">
+                    <div class="cart-total">
+                        <span>Total:</span>
+                        <span id="cart-total">R$ 0,00</span>
+                    </div>
+                    <button class="checkout-btn" onclick="checkout()">
+                        <i class="fab fa-whatsapp"></i> Finalizar Pedido
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    
+    <!-- Header -->
+    <header>
+        <div class="container header-container">
+            
+            <div class="logo">
+                 <img src="imagem/ChatGPT Image 9 de out. de 2025, 16_11_16.png"  width="100" height="80" >
+
+
+                
+               <span>Casa da Beleza </span>
+               
+
+
+            </div>
+            <nav>
+                <ul>
+                    
+                    <a href="#Início" data-tooltip="Àreas de produtos e beleza!!!">Início</a>
+                    
+                    <a href="#produtos" data-tooltip="+100 produtos disponíveis">Produtos</a>
+                    <li><a href="#" data-tooltip="+de 80 marcas diferentes">Marcas</a></li>   
+                    <li><a href="admin.html" data-tooltip="Àrea do Administrador"><i class="fas fa-lock"></i> Admin</a></li>
+                    <a href="contato" data-tooltip="📞 (93) 99144-5597| ✉️  evelensilva354@gmail.com
+">Contato</a>
+                    <style>
+/* Tooltip mais simples */
+nav a {
+    position: relative;
+}
+
+nav a:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #000;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 1000;
+}
+
+</style>
+
+<nav>
+</nav>
+                </ul>
+            </nav>
+            <div class="header-actions">
+                <button id="user-btn" data-logged="false">
+                    <i class="fas fa-user"></i>
+                </button>
+                <button id="cart-btn">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="cart-count">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+    
+
+    <!-- Banner -->
+    <section class="banner">
+        <div class="container">
+            <h1>Descubra sua beleza única</h1>
+            <p>Encontre os melhores produtos de beleza e cosméticos com os melhores preços</p>
+            <a href="http://wa.me//5593991445597" class="btn">Comprar Agora</a>
+        </div>
+    </section>
+
+    <!-- Filtros e Categorias -->
+    <section class="container">
+        <div class="filters">
+            <div class="categories">
+                <button class="category-btn active">Todos</button>
+                <button class="category-btn">Maquiagem</button>
+                <button class="category-btn">Skincare</button>
+                <button class="category-btn">Cabelos</button>
+                <button class="category-btn">Perfumes</button>
+                <button class="category-btn">Corpo e Banho</button>
+            </div>
+            <div class="search-sort">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Buscar produtos...">
+                </div>
+                <div class="sort">
+                    <select>
+                        <option>Ordenar por</option>
+                        <option>Menor preço</option>
+                        <option>Maior preço</option>
+                        <option>Mais vendidos</option>
+                        <option>Melhor avaliados</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Produtos -->
+    <section class="container">
+        <div class="products" id="products-container">
+            <!-- Produtos serão inseridos via JavaScript -->
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Casa da Beleza</h3>
+                    <p>Sua loja de confiança para produtos de beleza e cosméticos de alta qualidade.</p>
+                    <div class="social-icons">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="https://www.instagram.com/casadabeleza_oriximina?igsh=cXFoNjA1dzQ0dTFl&utm_source=qr"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-tiktok"></i></a>
+                        <a href="http://wa.me//5593991445597"><i class="fab fa-whatsapp"></i></a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h3>Rápidos</h3>
+                    <ul>
+                        <li><a href="#">Início</a></li>
+                        <li><a href="#">Produtos</a></li>
+                        <li><a href="#">Sobre</a></li>
+                        <li><a href="casa da beleza">Blog</a></li>
+                        <li><a href="http://wa.me//5593991445597">Contato</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Categorias</h3>
+                    <ul>
+                        <li><a href="#">Maquiagem</a></li>
+                        <li><a href="#">Skincare</a></li>
+                        <li><a href="#">Cabelos</a></li>
+                        <li><a href="#">Perfumes</a></li>
+                        <li><a href="#">Corpo e Banho</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Contato</h3>
+                    <ul>
+                        <li><i class="fas fa-map-marker-alt"></i> Avenida Independência n. 2030, sala E, bairro centro</li>
+                        <li><i class= "fas fa-phone"></i> (93) 991445597</li>
+                        <li><i class="fas fa-envelope"></i> evelensilva354@gmail.com</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; 2025 Casa da Beleza. Todos os direitos reservados.</p>
+            </div>
+        </div>
+    </footer>
+    
+
+    <!-- Modal de Login -->
+    <!-- Modal de Login - ATUALIZADO -->
+<div class="modal" id="login-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="login-modal-title">Login</h2>
+            <button class="close-modal">&times;</button>
+        </div>
+        <form id="login-form">
+            <div class="form-group">
+                <label for="email">E-mail</label>
+                <input type="email" id="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Senha</label>
+                <input type="password" id="password" required>
+            </div>
+            <div class="form-options">
+                <label>
+                    <input type="checkbox"> Lembrar-me
+                </label>
+                <a href="#">Esqueci minha senha</a>
+            </div>
+            <button type="submit" class="login-btn">Entrar</button>
+        </form>
+        <div class="divider">ou</div>
+        <button class="gmail-login">
+            <i class="fab fa-google"></i>
+            Entrar com Gmail
+        </button>
+        <p style="text-align: center; margin-top: 15px;">
+            Não tem uma conta? 
+            <a href="#" style="color: var(--primary-color);" onclick="showRegisterForm()">Cadastre-se</a>
+        </p>
+    </div>
+</div>
+   
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
