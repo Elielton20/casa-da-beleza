@@ -357,7 +357,7 @@ function checkout() {
         return;
     }
 
-    let message = `🛍️ *PEDIDO - LOJA DE COSMÉTICOS* 🛍️\n\n`;
+    let message = `🛍️ *PEDIDO - Casa da Beleza* 🛍️\n\n`;
     let total = 0;
     
     cart.forEach((item, index) => {
