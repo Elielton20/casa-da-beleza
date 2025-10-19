@@ -172,7 +172,21 @@ app.get('/api/products', async (req, res) => {
         }
 
         console.log(`✅ ${products?.length || 0} produtos encontrados`);
-        res.json(products || []);
+        
+        // Formatar produtos
+        const formattedProducts = (products || []).map(product => ({
+            id: product.id,
+            name: product.name,
+            price: parseFloat(product.price),
+            category_name: product.category_name || 'Sem categoria',
+            image: product.image,
+            description: product.description,
+            stock: product.stock,
+            rating: parseFloat(product.rating) || 4.5,
+            review_count: product.review_count || Math.floor(Math.random() * 200) + 50
+        }));
+
+        res.json(formattedProducts);
     } catch (error) {
         console.error('❌ Erro ao buscar produtos:', error);
         res.status(500).json({ error: 'Erro ao buscar produtos' });
@@ -207,156 +221,35 @@ app.post('/api/admin/login', async (req, res) => {
     console.log('🔑 Tentativa de login admin');
     const { username, password } = req.body;
 
-    // Login temporário para teste
-    if (username === 'admin' && password === 'admin') {
-        const token = jwt.sign(
-            { id: 1, username: 'admin' },
-            JWT_SECRET,
-            { expiresIn: '8h' }
-        );
-
-        console.log('✅ Login admin bem-sucedido (teste)');
-        return res.json({
-            token,
-            user: {
-                id: 1,
-                username: 'admin',
-                email: 'admin@example.com'
-            }
-        });
-    }
-
-    console.log('❌ Login admin falhou');
-    res.status(401).json({ error: 'Credenciais inválidas' });
-});
-
-// Inicialização do servidor
-async function startServer() {
-    console.log('🚀 Iniciando servidor...');
-    
-    // Testar conexão com Supabase
-    await testSupabaseConnection();
-    
-    // Iniciar servidor
-    app.listen(PORT, () => {
-        console.log('='.repeat(50));
-        console.log('🎉 SERVIDOR INICIADO COM SUCESSO!');
-        console.log(`✅ Porta: ${PORT}`);
-        console.log(`✅ Supabase: ${supabaseUrl ? 'Conectado' : 'Não conectado'}`);
-        console.log(`🌐 URL: https://casa-da-beleza-1-y7c9.onrender.com`);
-        console.log('='.repeat(50));
-        console.log('📋 Rotas disponíveis:');
-        console.log('   GET  /api/health     - Status do servidor');
-        console.log('   GET  /api/test       - Teste básico');
-        console.log('   GET  /api/products   - Listar produtos');
-        console.log('   GET  /api/categories - Listar categorias');
-        console.log('   POST /api/admin/login - Login admin');
-        console.log('='.repeat(50));
-    });
-}
-
-// Iniciar o servidor
-startServer().catch(error => {
-    console.error('❌ Erro ao iniciar servidor:', error);
-    process.exit(1);
-});
-
-export { supabase };
-        
-        // Buscar usuário no Supabase
-        const { data: users, error } = await supabase
-            .from('admin_users')
-            .select('id, username')
-            .eq('id', decoded.id);
-
-        if (error || users.length === 0) {
-            return res.status(403).json({ error: 'Usuário não encontrado' });
-        }
-
-        req.user = users[0];
-        next();
-    } catch (error) {
-        return res.status(403).json({ error: 'Token inválido' });
-    }
-};
-
-// Testar conexão com Supabase
-async function testSupabaseConnection() {
-  try {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .limit(1);
-    
-    if (error) throw error;
-    console.log('✅ Conectado ao Supabase com sucesso!');
-  } catch (error) {
-    console.log('❌ Erro ao conectar ao Supabase:', error.message);
-  }
-}
-
-testSupabaseConnection();
-
-// Rotas públicas
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/index.html'));
-});
-
-app.get('/admin.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/admin.html'));
-});
-
-app.get('/admin-panel.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/admin-panel.html'));
-});
-
-// Rota de saúde da API
-app.get('/api/health', async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .limit(1);
-    
-    if (error) throw error;
-    
-    res.json({ 
-      status: 'healthy', 
-      database: 'connected',
-      message: 'API e Supabase conectados com sucesso!'
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'error',
-      database: 'disconnected',
-      error: error.message
-    });
-  }
-});
-
-// Login Admin
-app.post('/api/admin/login', async (req, res) => {
-    const { username, password } = req.body;
-
     try {
         const { data: users, error } = await supabase
             .from('admin_users')
             .select('*')
             .eq('username', username);
 
-        if (error || users.length === 0) {
+        if (error || !users || users.length === 0) {
+            console.log('❌ Usuário não encontrado');
             return res.status(401).json({ error: 'Credenciais inválidas' });
         }
 
         const user = users[0];
 
-        if (!password || !user.password_hash) {
-            return res.status(400).json({ error: 'Senha não fornecida ou inválida' });
+        // Se não tem hash, cria um hash temporário para teste
+        if (!user.password_hash) {
+            console.log('⚠️  Usuário sem hash de senha, usando senha padrão');
+            const hashedPassword = await bcrypt.hash('admin123', 10);
+            
+            // Atualiza o usuário com hash
+            await supabase
+                .from('admin_users')
+                .update({ password_hash: hashedPassword })
+                .eq('id', user.id);
         }
 
         const validPassword = await bcrypt.compare(password, user.password_hash);
 
         if (!validPassword) {
+            console.log('❌ Senha inválida');
             return res.status(401).json({ error: 'Credenciais inválidas' });
         }
 
@@ -366,6 +259,7 @@ app.post('/api/admin/login', async (req, res) => {
             { expiresIn: '8h' }
         );
 
+        console.log('✅ Login admin bem-sucedido');
         res.json({
             token,
             user: {
@@ -376,13 +270,14 @@ app.post('/api/admin/login', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Erro no login:', error);
+        console.error('❌ Erro no login:', error);
         res.status(500).json({ error: 'Erro interno do servidor' });
     }
 });
 
-// Login de usuário
+// Login de usuário normal
 app.post('/api/users/login', async (req, res) => {
+    console.log('🔑 Tentativa de login usuário');
     const { email, password } = req.body;
 
     try {
@@ -391,7 +286,7 @@ app.post('/api/users/login', async (req, res) => {
             .select('*')
             .eq('email', email);
 
-        if (error || users.length === 0) {
+        if (error || !users || users.length === 0) {
             return res.status(401).json({ error: 'Credenciais inválidas' });
         }
 
@@ -408,6 +303,7 @@ app.post('/api/users/login', async (req, res) => {
             { expiresIn: '24h' }
         );
 
+        console.log('✅ Login usuário bem-sucedido');
         res.json({
             token,
             user: {
@@ -418,13 +314,14 @@ app.post('/api/users/login', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Erro no login usuário:', error);
+        console.error('❌ Erro no login usuário:', error);
         res.status(500).json({ error: 'Erro interno do servidor' });
     }
 });
 
 // Registro de usuário
 app.post('/api/users/register', async (req, res) => {
+    console.log('📝 Tentativa de registro de usuário');
     const { name, email, password } = req.body;
 
     try {
@@ -436,7 +333,7 @@ app.post('/api/users/register', async (req, res) => {
 
         if (checkError) throw checkError;
 
-        if (existingUsers.length > 0) {
+        if (existingUsers && existingUsers.length > 0) {
             return res.status(400).json({ error: 'E-mail já cadastrado' });
         }
 
@@ -464,6 +361,7 @@ app.post('/api/users/register', async (req, res) => {
             { expiresIn: '24h' }
         );
 
+        console.log('✅ Usuário registrado com sucesso');
         res.status(201).json({
             token,
             user: {
@@ -474,59 +372,8 @@ app.post('/api/users/register', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Erro no registro:', error);
+        console.error('❌ Erro no registro:', error);
         res.status(500).json({ error: 'Erro interno do servidor' });
-    }
-});
-
-// Buscar produtos (público)
-app.get('/api/products', async (req, res) => {
-    try {
-        const { data: products, error } = await supabase
-            .from('products')
-            .select(`
-                *,
-                categories(name)
-            `)
-            .eq('status', 'active')
-            .order('created_at', { ascending: false });
-
-        if (error) throw error;
-
-        // Formatar os produtos
-        const formattedProducts = products.map(product => ({
-            id: product.id,
-            name: product.name,
-            price: parseFloat(product.price),
-            category_name: product.categories?.name || 'Sem categoria',
-            image: product.image,
-            description: product.description,
-            stock: product.stock,
-            rating: parseFloat(product.rating) || 4.5,
-            review_count: product.review_count || Math.floor(Math.random() * 200) + 50
-        }));
-
-        res.json(formattedProducts);
-    } catch (error) {
-        console.error('Erro ao buscar produtos:', error);
-        res.status(500).json({ error: 'Erro ao buscar produtos' });
-    }
-});
-
-// Buscar categorias (público)
-app.get('/api/categories', async (req, res) => {
-    try {
-        const { data: categories, error } = await supabase
-            .from('categories')
-            .select('*')
-            .eq('status', 'active')
-            .order('name');
-
-        if (error) throw error;
-        res.json(categories);
-    } catch (error) {
-        console.error('Erro ao buscar categorias:', error);
-        res.status(500).json({ error: 'Erro ao buscar categorias' });
     }
 });
 
@@ -535,6 +382,7 @@ app.get('/api/categories', async (req, res) => {
 // Salvar carrinho do usuário
 app.post('/api/users/cart', async (req, res) => {
     const { userId, cart } = req.body;
+    console.log('🛒 Salvando carrinho para usuário:', userId);
 
     try {
         // Primeiro, remove o carrinho antigo do usuário
@@ -559,9 +407,10 @@ app.post('/api/users/cart', async (req, res) => {
 
         if (insertError) throw insertError;
 
+        console.log('✅ Carrinho salvo com sucesso');
         res.json({ message: 'Carrinho salvo com sucesso' });
     } catch (error) {
-        console.error('Erro ao salvar carrinho:', error);
+        console.error('❌ Erro ao salvar carrinho:', error);
         res.status(500).json({ error: 'Erro ao salvar carrinho' });
     }
 });
@@ -569,6 +418,7 @@ app.post('/api/users/cart', async (req, res) => {
 // Buscar carrinho do usuário
 app.get('/api/users/:userId/cart', async (req, res) => {
     const { userId } = req.params;
+    console.log('🛒 Buscando carrinho do usuário:', userId);
 
     try {
         const { data: cartItems, error } = await supabase
@@ -578,92 +428,24 @@ app.get('/api/users/:userId/cart', async (req, res) => {
                 products(name, price, image, category_id),
                 categories(name)
             `)
-            .eq('user_id', userId)
-            .eq('products.status', 'active');
+            .eq('user_id', userId);
 
         if (error) throw error;
 
-        const cart = cartItems.map(item => ({
+        const cart = (cartItems || []).map(item => ({
             id: item.product_id,
-            name: item.products.name,
-            price: parseFloat(item.products.price),
-            image: item.products.image,
+            name: item.products?.name || 'Produto',
+            price: parseFloat(item.products?.price) || 0,
+            image: item.products?.image,
             category: item.categories?.name,
             quantity: item.quantity
         }));
 
+        console.log(`✅ ${cart.length} itens no carrinho`);
         res.json(cart);
     } catch (error) {
-        console.error('Erro ao buscar carrinho:', error);
+        console.error('❌ Erro ao buscar carrinho:', error);
         res.status(500).json({ error: 'Erro ao buscar carrinho' });
-    }
-});
-
-// ========== ROTAS PARA PEDIDOS VIA WHATSAPP ==========
-
-// Criar pedido via WhatsApp
-app.post('/api/orders/whatsapp', async (req, res) => {
-    const { customerName, customerEmail, items, total, message } = req.body;
-
-    try {
-        // Criar pedido
-        const { data: order, error: orderError } = await supabase
-            .from('orders')
-            .insert([
-                {
-                    customer_name: customerName,
-                    customer_email: customerEmail,
-                    total_amount: total,
-                    payment_method: 'whatsapp',
-                    status: 'pending'
-                }
-            ])
-            .select();
-
-        if (orderError) throw orderError;
-
-        const orderId = order[0].id;
-
-        // Adicionar itens do pedido
-        const orderItems = items.map(item => ({
-            order_id: orderId,
-            product_id: item.id,
-            product_name: item.name,
-            quantity: item.quantity,
-            unit_price: item.price
-        }));
-
-        const { error: itemsError } = await supabase
-            .from('order_items')
-            .insert(orderItems);
-
-        if (itemsError) throw itemsError;
-
-        // Registrar mensagem do WhatsApp
-        const { error: whatsappError } = await supabase
-            .from('whatsapp_orders')
-            .insert([
-                {
-                    order_id: orderId,
-                    customer_message: message,
-                    whatsapp_number: '559391445597'
-                }
-            ]);
-
-        if (whatsappError) throw whatsappError;
-
-        res.status(201).json({ 
-            success: true,
-            orderId,
-            message: 'Pedido registrado com sucesso. Aguarde contato via WhatsApp.'
-        });
-
-    } catch (error) {
-        console.error('Erro ao criar pedido WhatsApp:', error);
-        res.status(500).json({ 
-            success: false,
-            error: 'Erro ao processar pedido. Tente novamente.' 
-        });
     }
 });
 
@@ -671,6 +453,7 @@ app.post('/api/orders/whatsapp', async (req, res) => {
 
 // Dashboard stats
 app.get('/api/admin/stats', authenticateToken, async (req, res) => {
+    console.log('📊 Buscando estatísticas do admin');
     try {
         // Total de produtos
         const { count: totalProducts } = await supabase
@@ -711,6 +494,7 @@ app.get('/api/admin/stats', authenticateToken, async (req, res) => {
             .from('users')
             .select('*', { count: 'exact', head: true });
 
+        console.log('✅ Estatísticas carregadas');
         res.json({
             totalProducts: totalProducts || 0,
             totalCategories: totalCategories || 0,
@@ -720,13 +504,14 @@ app.get('/api/admin/stats', authenticateToken, async (req, res) => {
             totalUsers: totalUsers || 0
         });
     } catch (error) {
-        console.error('Erro ao buscar estatísticas:', error);
+        console.error('❌ Erro ao buscar estatísticas:', error);
         res.status(500).json({ error: 'Erro ao buscar estatísticas' });
     }
 });
 
 // Buscar pedidos para admin
 app.get('/api/admin/orders', authenticateToken, async (req, res) => {
+    console.log('📦 Buscando pedidos para admin');
     try {
         const { data: orders, error } = await supabase
             .from('orders')
@@ -738,94 +523,40 @@ app.get('/api/admin/orders', authenticateToken, async (req, res) => {
 
         if (error) throw error;
 
-        const ordersWithCount = orders.map(order => ({
+        const ordersWithCount = (orders || []).map(order => ({
             ...order,
-            items_count: order.order_items.length
+            items_count: order.order_items?.length || 0
         }));
 
+        console.log(`✅ ${ordersWithCount.length} pedidos encontrados`);
         res.json(ordersWithCount);
     } catch (error) {
-        console.error('Erro ao buscar pedidos:', error);
+        console.error('❌ Erro ao buscar pedidos:', error);
         res.status(500).json({ error: 'Erro ao buscar pedidos' });
-    }
-});
-
-// Buscar detalhes de um pedido
-app.get('/api/admin/orders/:id', authenticateToken, async (req, res) => {
-    const { id } = req.params;
-
-    try {
-        const { data: order, error: orderError } = await supabase
-            .from('orders')
-            .select('*')
-            .eq('id', id)
-            .single();
-
-        if (orderError) throw orderError;
-
-        const { data: items, error: itemsError } = await supabase
-            .from('order_items')
-            .select(`
-                *,
-                products(image)
-            `)
-            .eq('order_id', id);
-
-        if (itemsError) throw itemsError;
-
-        res.json({
-            ...order,
-            items
-        });
-    } catch (error) {
-        console.error('Erro ao buscar pedido:', error);
-        res.status(500).json({ error: 'Erro ao buscar pedido' });
-    }
-});
-
-// Atualizar status do pedido
-app.put('/api/admin/orders/:id/status', authenticateToken, async (req, res) => {
-    const { id } = req.params;
-    const { status } = req.body;
-
-    try {
-        const { error } = await supabase
-            .from('orders')
-            .update({ 
-                status: status,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', id);
-
-        if (error) throw error;
-
-        res.json({ message: 'Status do pedido atualizado com sucesso' });
-    } catch (error) {
-        console.error('Erro ao atualizar status do pedido:', error);
-        res.status(500).json({ error: 'Erro ao atualizar status do pedido' });
     }
 });
 
 // Gerenciar Produtos (Admin)
 app.get('/api/admin/products', authenticateToken, async (req, res) => {
+    console.log('📦 Buscando produtos para admin');
     try {
         const { data: products, error } = await supabase
             .from('products')
-            .select(`
-                *,
-                categories(name)
-            `)
+            .select('*')
             .order('created_at', { ascending: false });
 
         if (error) throw error;
-        res.json(products);
+
+        console.log(`✅ ${products?.length || 0} produtos encontrados para admin`);
+        res.json(products || []);
     } catch (error) {
-        console.error('Erro ao buscar produtos:', error);
+        console.error('❌ Erro ao buscar produtos:', error);
         res.status(500).json({ error: 'Erro ao buscar produtos' });
     }
 });
 
 app.post('/api/admin/products', authenticateToken, async (req, res) => {
+    console.log('➕ Criando novo produto');
     const { name, price, category_id, image, description, stock, status } = req.body;
 
     try {
@@ -842,16 +573,14 @@ app.post('/api/admin/products', authenticateToken, async (req, res) => {
                     status: status || 'active'
                 }
             ])
-            .select(`
-                *,
-                categories(name)
-            `);
+            .select();
 
         if (error) throw error;
 
+        console.log('✅ Produto criado com sucesso');
         res.status(201).json(newProduct[0]);
     } catch (error) {
-        console.error('Erro ao criar produto:', error);
+        console.error('❌ Erro ao criar produto:', error);
         res.status(500).json({ error: 'Erro ao criar produto' });
     }
 });
@@ -859,6 +588,8 @@ app.post('/api/admin/products', authenticateToken, async (req, res) => {
 app.put('/api/admin/products/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const { name, price, category_id, image, description, stock, status } = req.body;
+    
+    console.log('✏️ Atualizando produto:', id);
 
     try {
         const { data: updatedProduct, error } = await supabase
@@ -874,22 +605,21 @@ app.put('/api/admin/products/:id', authenticateToken, async (req, res) => {
                 updated_at: new Date().toISOString()
             })
             .eq('id', id)
-            .select(`
-                *,
-                categories(name)
-            `);
+            .select();
 
         if (error) throw error;
 
+        console.log('✅ Produto atualizado com sucesso');
         res.json(updatedProduct[0]);
     } catch (error) {
-        console.error('Erro ao atualizar produto:', error);
+        console.error('❌ Erro ao atualizar produto:', error);
         res.status(500).json({ error: 'Erro ao atualizar produto' });
     }
 });
 
 app.delete('/api/admin/products/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
+    console.log('🗑️ Excluindo produto:', id);
 
     try {
         const { error } = await supabase
@@ -899,15 +629,17 @@ app.delete('/api/admin/products/:id', authenticateToken, async (req, res) => {
 
         if (error) throw error;
 
+        console.log('✅ Produto excluído com sucesso');
         res.json({ message: 'Produto excluído com sucesso' });
     } catch (error) {
-        console.error('Erro ao excluir produto:', error);
+        console.error('❌ Erro ao excluir produto:', error);
         res.status(500).json({ error: 'Erro ao excluir produto' });
     }
 });
 
 // Gerenciar Categorias
 app.get('/api/admin/categories', authenticateToken, async (req, res) => {
+    console.log('📂 Buscando categorias para admin');
     try {
         const { data: categories, error } = await supabase
             .from('categories')
@@ -915,13 +647,46 @@ app.get('/api/admin/categories', authenticateToken, async (req, res) => {
             .order('name');
 
         if (error) throw error;
-        res.json(categories);
+
+        console.log(`✅ ${categories?.length || 0} categorias encontradas`);
+        res.json(categories || []);
     } catch (error) {
-        console.error('Erro ao buscar categorias:', error);
+        console.error('❌ Erro ao buscar categorias:', error);
         res.status(500).json({ error: 'Erro ao buscar categorias' });
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`✅ Servidor rodando na porta ${PORT}`);
+// Inicialização do servidor
+async function startServer() {
+    console.log('🚀 Iniciando servidor...');
+    
+    // Testar conexão com Supabase
+    await testSupabaseConnection();
+    
+    // Iniciar servidor
+    app.listen(PORT, () => {
+        console.log('='.repeat(50));
+        console.log('🎉 SERVIDOR INICIADO COM SUCESSO!');
+        console.log(`✅ Porta: ${PORT}`);
+        console.log(`✅ Supabase: ${supabaseUrl ? 'Conectado' : 'Não conectado'}`);
+        console.log(`🌐 URL: https://casa-da-beleza-1-y7c9.onrender.com`);
+        console.log('='.repeat(50));
+        console.log('📋 Rotas disponíveis:');
+        console.log('   GET  /api/health           - Status do servidor');
+        console.log('   GET  /api/test             - Teste básico');
+        console.log('   GET  /api/products         - Listar produtos');
+        console.log('   GET  /api/categories       - Listar categorias');
+        console.log('   POST /api/admin/login      - Login admin');
+        console.log('   POST /api/users/login      - Login usuário');
+        console.log('   POST /api/users/register   - Registrar usuário');
+        console.log('='.repeat(50));
+    });
+}
+
+// Iniciar o servidor
+startServer().catch(error => {
+    console.error('❌ Erro ao iniciar servidor:', error);
+    process.exit(1);
 });
+
+export { supabase };
