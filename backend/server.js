@@ -3,7 +3,15 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const path = require('path');
-const db = require('./config/database');
+
+const supabase = require('./config/database');
+
+// Novo uso com Supabase
+const { data, error } = await supabase
+  .from('produtos')
+  .select('*');
+
+if (error) throw error;
 
 const app = express();
 
@@ -553,4 +561,5 @@ app.get('/api/admin/categories', authenticateToken, async (req, res) => {
    // console.log(`Acesse: http://localhost:${PORT}`);
 //});
 const PORT = process.env.PORT || 3000;
+console.log(`Acesse: http://localhost:${PORT}`);
 app.listen(PORT, () => console.log(`✅ Servidor rodando na porta ${PORT}`));

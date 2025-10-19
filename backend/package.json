@@ -1,24 +1,22 @@
 {
-  "name": "casa-beleza-backend",
+  "name": "casa-belza-backend",
   "version": "1.0.0",
-  "description": "Backend para Casa da Beleza",
-  "main": "server.js",
+  "description": "Backend para Casa Belza",
+  "main": "backend/server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.15.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
-    
   }
 }
-  
-  
-
