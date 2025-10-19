@@ -68,46 +68,63 @@ const WHATSAPP_NUMBER = "559391445597";
 // ========== FUNÇÕES ATUALIZADAS PARA CATEGORIAS ==========
 
 // Função para carregar produtos do servidor - ATUALIZADA
-// Função para carregar produtos do servidor - CORRIGIDA
+// Função para carregar produtos - VERSÃO DEBUG CORRIGIDA
 async function loadProductsFromStorage() {
     try {
-        console.log('🔄 Carregando produtos do Supabase...');
+        console.log('🔄 Iniciando carregamento de produtos...');
         
-        // Busca diretamente do Supabase com JOIN nas categorias
-        const { data: products, error } = await supabase
-            .from('products')
-            .select(`
-                *,
-                categories (name)
-            `)
-            .order('name');
+        // DEBUG: Verifica se o Supabase está inicializado
+        console.log('🔧 Supabase config:', { supabaseUrl, supabaseKey, supabase: !!supabase });
+        
+        // Tenta carregar do Supabase
+        if (supabase && supabaseUrl && supabaseKey) {
+            console.log('📡 Conectando ao Supabase...');
+            
+            const { data: products, error } = await supabase
+                .from('products')
+                .select(`
+                    id,
+                    name, 
+                    price,
+                    image,
+                    category_id,
+                    categories (name)
+                `)
+                .order('name');
 
-        if (error) {
-            console.error('❌ Erro ao carregar produtos:', error);
-            throw error;
+            console.log('📦 Resposta do Supabase:', { products, error });
+            
+            if (!error && products && products.length > 0) {
+                console.log('✅ Produtos carregados do Supabase:', products.length);
+                
+                const produtosFormatados = products.map(product => ({
+                    id: product.id,
+                    name: product.name,
+                    price: parseFloat(product.price),
+                    category_id: product.category_id,
+                    category: product.categories?.name || 'Sem categoria',
+                    image: product.image || 'https://via.placeholder.com/300x300?text=Produto+Sem+Imagem',
+                    rating: 4.5,
+                    reviewCount: Math.floor(Math.random() * 200) + 50
+                }));
+                
+                console.log('🎯 Produtos formatados:', produtosFormatados);
+                return produtosFormatados;
+            } else {
+                console.error('❌ Erro ao carregar do Supabase:', error);
+            }
         }
         
-        console.log('✅ Produtos carregados do Supabase:', products);
-
-        return products.map(product => ({
-            id: product.id,
-            name: product.name,
-            price: parseFloat(product.price),
-            category_id: product.category_id,
-            category: product.categories?.name || 'Sem categoria', // ← CORRIGIDO AQUI
-            image: product.image || 'https://via.placeholder.com/300x300?text=Produto+Sem+Imagem',
-            rating: parseFloat(product.rating) || 4.5,
-            reviewCount: product.review_count || Math.floor(Math.random() * 200) + 50
-        }));
-    } catch (error) {
-        console.error('❌ Erro ao carregar produtos do Supabase:', error);
+        // Fallback para produtos locais
+        console.log('🔄 Usando produtos locais como fallback');
+        return initialProducts;
         
-        // Fallback para produtos iniciais
-        console.log('🔄 Usando produtos iniciais como fallback');
+    } catch (error) {
+        console.error('💥 Erro crítico ao carregar produtos:', error);
+        console.log('🔄 Usando produtos locais');
         return initialProducts;
     }
 }
-
 // Função para carregar categorias da API - NOVA
 async function loadCategoriesFromAPI() {
     try {
