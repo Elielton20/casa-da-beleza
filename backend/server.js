@@ -198,11 +198,21 @@ app.get('/api/products', async (req, res) => {
 app.get('/api/categories', async (req, res) => {
     console.log('📂 Buscando categorias...');
     try {
-        const { data: categories, error } = await supabase
-            .from('categories')
-            .select('*')
-            .eq('status', 'active')
-            .order('name');
+        // Busca os produtos com categorias
+const { data: produtos, error: produtosError } = await supabase
+    .from('products')
+    .select(`
+        *,
+        categories (name)
+    `)
+    .order('name');
+
+// Busca categorias para outros usos (se necessário)
+const { data: categories, error: categoriesError } = await supabase
+    .from('categories')
+    .select('*')
+    .eq('status', 'active')
+    .order('name');
 
         if (error) {
             console.log('❌ Erro ao buscar categorias:', error);
