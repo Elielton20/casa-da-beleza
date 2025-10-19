@@ -1,9 +1,3 @@
-// Inicialização do Supabase
-const supabaseUrl = 'https://seu-projeto.supabase.co'; // Substitua pela sua URL
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqcGZoZ2J4c3BpYnVjdmFjeHB0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDg3NzMwNCwiZXhwIjoyMDc2NDUzMzA0fQ.dziOb3cIrlGiiM0PuJABuFioOf9BgnMcABQpM27N3qc'; // Substitua pela sua chave anônima
-const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-
-
 
 // Dados iniciais dos produtos (fallback) - MANTIDO
 const initialProducts = [
@@ -74,26 +68,16 @@ const WHATSAPP_NUMBER = "559391445597";
 // ========== FUNÇÕES ATUALIZADAS PARA CATEGORIAS ==========
 
 // Função para carregar produtos do servidor - ATUALIZADA
-// Função para carregar produtos do servidor - VERSÃO CORRIGIDA
+// Função para carregar produtos do servidor - CORRIGIDA
 async function loadProductsFromStorage() {
     try {
         console.log('🔄 Carregando produtos do Supabase...');
         
-        // Verifica se o Supabase está inicializado
-        if (!supabase) {
-            console.error('❌ Supabase não inicializado');
-            throw new Error('Supabase não configurado');
-        }
-        
-        // Busca produtos com JOIN nas categorias
+        // Busca diretamente do Supabase com JOIN nas categorias
         const { data: products, error } = await supabase
             .from('products')
             .select(`
-                id,
-                name,
-                price,
-                image,
-                category_id,
+                *,
                 categories (name)
             `)
             .order('name');
@@ -103,61 +87,59 @@ async function loadProductsFromStorage() {
             throw error;
         }
         
-        console.log('✅ Produtos carregados:', products);
+        console.log('✅ Produtos carregados do Supabase:', products);
 
-        if (!products || products.length === 0) {
-            console.log('📭 Nenhum produto encontrado, usando fallback');
-            return initialProducts;
-        }
-        
-        // Mapeia os dados corretamente
         return products.map(product => ({
             id: product.id,
             name: product.name,
             price: parseFloat(product.price),
             category_id: product.category_id,
-            category: product.categories?.name || 'Sem categoria',
+            category: product.categories?.name || 'Sem categoria', // ← CORRIGIDO AQUI
             image: product.image || 'https://via.placeholder.com/300x300?text=Produto+Sem+Imagem',
-            rating: 4.5, // Valor padrão
-            reviewCount: Math.floor(Math.random() * 200) + 50 // Valor padrão
+            rating: parseFloat(product.rating) || 4.5,
+            reviewCount: product.review_count || Math.floor(Math.random() * 200) + 50
         }));
-        
     } catch (error) {
-        console.error('❌ Erro crítico ao carregar produtos:', error);
+        console.error('❌ Erro ao carregar produtos do Supabase:', error);
+        
+        // Fallback para produtos iniciais
         console.log('🔄 Usando produtos iniciais como fallback');
         return initialProducts;
     }
 }
 
-// Função para atualizar botões de categoria - NOVA
-// Função para carregar categorias da API - VERSÃO CORRIGIDA
+// Função para carregar categorias da API - NOVA
 async function loadCategoriesFromAPI() {
     try {
-        console.log('🔄 Carregando categorias do Supabase...');
+        console.log('🔄 Carregando categorias da API...');
+        const response = await fetch('/api/categories');
+        if (!response.ok) throw new Error('Erro ao carregar categorias');
+        const categories = await response.json();
         
-        if (!supabase) {
-            console.error('❌ Supabase não inicializado');
-            return [];
-        }
-        
-        const { data: categories, error } = await supabase
-            .from('categories')
-            .select('*')
-            .eq('status', 'active')
-            .order('name');
-
-        if (error) {
-            console.error('❌ Erro ao carregar categorias:', error);
-            return [];
-        }
-
         console.log('✅ Categorias carregadas:', categories);
-        return categories || [];
+        return categories;
     } catch (error) {
         console.error('❌ Erro ao carregar categorias:', error);
         return [];
     }
 }
+
+// Função para atualizar botões de categoria - NOVA
+async function updateCategoryButtons() {
+    try {
+        const categories = await loadCategoriesFromAPI();
+        const categoriesContainer = document.querySelector('.categories');
+        
+        if (!categoriesContainer) {
+            console.error('❌ Container de categorias não encontrado');
+            return;
+        }
+        
+        if (categories.length === 0) {
+            console.log('ℹ️ Nenhuma categoria encontrada, usando categorias padrão');
+            return;
+        }
+        
         // Limpa categorias existentes (exceto "Todos")
         const existingButtons = categoriesContainer.querySelectorAll('.category-btn');
         existingButtons.forEach(btn => {
