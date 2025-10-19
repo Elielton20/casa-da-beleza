@@ -4,7 +4,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
+
+import bcrypt from 'bcryptjs';
 
 // Para __dirname em ES modules
 const __filename = fileURLToPath(import.meta.url);

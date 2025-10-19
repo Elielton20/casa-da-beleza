@@ -64,42 +64,176 @@ let currentProducts = [];
 let currentUser = null;
 const WHATSAPP_NUMBER = "559391445597";
 
+// ========== FUNÇÕES ATUALIZADAS PARA CATEGORIAS ==========
+
 // Função para carregar produtos do servidor - ATUALIZADA
 async function loadProductsFromStorage() {
     try {
-        // Primeiro tenta carregar do localStorage (produtos do admin)
-        const adminProducts = localStorage.getItem('adminProducts');
-        if (adminProducts) {
-            const parsedProducts = JSON.parse(adminProducts);
-            if (parsedProducts && parsedProducts.length > 0) {
-                console.log('Carregando produtos do admin:', parsedProducts);
-                return parsedProducts;
-            }
-        }
-
-        // Se não tem produtos do admin, tenta carregar da API
+        console.log('🔄 Carregando produtos da API...');
+        
+        // Tenta carregar da API
         const response = await fetch('/api/products');
-        if (!response.ok) throw new Error('Erro ao carregar produtos');
+        if (!response.ok) throw new Error('Erro ao carregar produtos da API');
         const products = await response.json();
+        
+        console.log('✅ Produtos carregados da API:', products.length);
         
         return products.map(product => ({
             id: product.id,
             name: product.name,
             price: parseFloat(product.price),
-            category: product.category_name,
-            image: product.image,
+            category_id: product.category_id, // ← IMPORTANTE: adicionar category_id
+            category: product.category_name || 'Sem categoria',
+            image: product.image || 'https://via.placeholder.com/300x300?text=Produto+Sem+Imagem',
             rating: parseFloat(product.rating) || 4.5,
             reviewCount: product.review_count || Math.floor(Math.random() * 200) + 50
         }));
     } catch (error) {
-        console.error('Erro ao carregar produtos:', error);
+        console.error('❌ Erro ao carregar produtos da API:', error);
+        
+        // Fallback para produtos iniciais
+        console.log('🔄 Usando produtos iniciais como fallback');
         return initialProducts;
     }
 }
 
+// Função para carregar categorias da API - NOVA
+async function loadCategoriesFromAPI() {
+    try {
+        console.log('🔄 Carregando categorias da API...');
+        const response = await fetch('/api/categories');
+        if (!response.ok) throw new Error('Erro ao carregar categorias');
+        const categories = await response.json();
+        
+        console.log('✅ Categorias carregadas:', categories);
+        return categories;
+    } catch (error) {
+        console.error('❌ Erro ao carregar categorias:', error);
+        return [];
+    }
+}
+
+// Função para atualizar botões de categoria - NOVA
+async function updateCategoryButtons() {
+    try {
+        const categories = await loadCategoriesFromAPI();
+        const categoriesContainer = document.querySelector('.categories');
+        
+        if (!categoriesContainer) {
+            console.error('❌ Container de categorias não encontrado');
+            return;
+        }
+        
+        if (categories.length === 0) {
+            console.log('ℹ️ Nenhuma categoria encontrada, usando categorias padrão');
+            return;
+        }
+        
+        // Limpa categorias existentes (exceto "Todos")
+        const existingButtons = categoriesContainer.querySelectorAll('.category-btn');
+        existingButtons.forEach(btn => {
+            if (btn.getAttribute('data-category-id') !== 'all') {
+                btn.remove();
+            }
+        });
+        
+        // Adiciona categorias da API
+        categories.forEach(category => {
+            const button = document.createElement('button');
+            button.className = 'category-btn';
+            button.setAttribute('data-category-id', category.id);
+            button.textContent = category.name;
+            button.addEventListener('click', function() {
+                filterProductsByCategory(category.id);
+            });
+            
+            categoriesContainer.appendChild(button);
+        });
+        
+        console.log('✅ Botões de categoria atualizados');
+    } catch (error) {
+        console.error('❌ Erro ao atualizar botões de categoria:', error);
+    }
+}
+
+// Função para filtrar produtos por categoria - ATUALIZADA
+function filterProductsByCategory(categoryId) {
+    console.log('🎯 Filtrando produtos por categoria ID:', categoryId);
+    
+    // Remove a classe active de todos os botões
+    document.querySelectorAll('.category-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Adiciona active no botão clicado
+    event.target.classList.add('active');
+    
+    // Se for "Todos", mostra todos os produtos
+    if (categoryId === 'all') {
+        loadProducts();
+        return;
+    }
+    
+    // Filtra os produtos pela categoria ID
+    const filteredProducts = currentProducts.filter(product => 
+        product.category_id == categoryId
+    );
+    
+    renderFilteredProducts(filteredProducts);
+}
+
+// Função para renderizar produtos filtrados - NOVA
+function renderFilteredProducts(filteredProducts) {
+    const productsContainer = document.getElementById('products-container');
+    
+    productsContainer.innerHTML = '';
+    
+    if (filteredProducts.length === 0) {
+        productsContainer.innerHTML = `
+            <div style="text-align: center; padding: 3rem; grid-column: 1 / -1;">
+                <i class="fas fa-search" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
+                <h3 style="color: #666; margin-bottom: 1rem;">Nenhum produto encontrado</h3>
+                <p style="color: #999;">Tente outra categoria ou busca.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    filteredProducts.forEach(product => {
+        const productCard = document.createElement('div');
+        productCard.className = 'product-card';
+        productCard.innerHTML = `
+            <img src="${product.image}" alt="${product.name}" class="product-image"
+                 onerror="this.src='https://via.placeholder.com/300x300?text=Produto+Sem+Imagem'">
+            <div class="product-info">
+                <h3 class="product-title">${product.name}</h3>
+                <div class="product-price">R$ ${product.price.toFixed(2)}</div>
+                <div class="product-rating">
+                    <div class="stars">
+                        ${generateStars(product.rating)}
+                    </div>
+                    <span>(${product.reviewCount})</span>
+                </div>
+                <div class="product-actions">
+                    <button class="buy-now-btn" onclick="buyNow(${product.id})">
+                        <i class="fab fa-whatsapp"></i> Comprar Agora
+                    </button>
+                    <button class="add-to-cart-btn" onclick="addToCart(${product.id})">
+                        <i class="fas fa-shopping-cart"></i> Carrinho
+                    </button>
+                </div>
+            </div>
+        `;
+        productsContainer.appendChild(productCard);
+    });
+}
+
+// ========== INICIALIZAÇÃO ATUALIZADA ==========
+
 // Inicialização - ATUALIZADA
-document.addEventListener('DOMContentLoaded', function() {
-    loadProducts();
+document.addEventListener('DOMContentLoaded', async function() {
+    await loadProducts();
+    await updateCategoryButtons(); // ← ADICIONAR ESTA LINHA
     setupEventListeners();
     checkUserAuth();
     loadCartFromStorage();
@@ -153,7 +287,7 @@ async function loadProducts() {
     });
 }
 
-// ========== FUNÇÕES DO CARRINHO (ADICIONADAS) ==========
+// ========== FUNÇÕES DO CARRINHO (MANTIDAS) ==========
 
 // Adicionar produto ao carrinho
 function addToCart(productId) {
@@ -216,26 +350,22 @@ function saveCartToStorage() {
 // Carregar carrinho do localStorage
 function loadCartFromStorage() {
     const savedCart = localStorage.getItem('shoppingCart');
-    console.log('Saved cart from storage:', savedCart); // Para debug
+    console.log('Saved cart from storage:', savedCart);
     if (savedCart) {
         cart = JSON.parse(savedCart);
     }
 }
-    
 
-
-// Atualizar contador do carrinho
 // Atualizar contador do carrinho - CORRIGIDA
 function updateCartCounter() {
     const cartCounter = document.getElementById('cart-count');
     const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
     
-    console.log('Total de itens no carrinho:', totalItems); // Para debug
+    console.log('Total de itens no carrinho:', totalItems);
     
     if (cartCounter) {
         cartCounter.textContent = totalItems;
         
-        // Garantir que o contador seja visível quando há itens
         if (totalItems > 0) {
             cartCounter.style.display = 'flex';
             cartCounter.style.opacity = '1';
@@ -245,15 +375,15 @@ function updateCartCounter() {
         }
     } else {
         console.error('Elemento cart-count não encontrado!');
-        // Criar o elemento se não existir
         createCartCounter();
     }
-    // Criar contador do carrinho se não existir
+}
+
+// Criar contador do carrinho se não existir
 function createCartCounter() {
     const cartBtn = document.getElementById('cart-btn');
     if (!cartBtn) return;
     
-    // Verificar se já existe um contador
     let cartCounter = document.getElementById('cart-count');
     if (!cartCounter) {
         cartCounter = document.createElement('span');
@@ -263,7 +393,6 @@ function createCartCounter() {
     }
     
     updateCartCounter();
-}
 }
 
 // Atualizar exibição do carrinho
@@ -313,7 +442,7 @@ function updateCartDisplay() {
     
     cartTotalElement.textContent = `R$ ${total.toFixed(2)}`;
 }
-// Menu Hamburguer para Mobile
+
 // Menu Hamburguer para Mobile
 document.addEventListener('DOMContentLoaded', function() {
     const menuToggle = document.createElement('button');
@@ -323,10 +452,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const headerContainer = document.querySelector('.header-container');
     const nav = document.querySelector('nav');
     
-    // Inserir o botão do menu no header
     headerContainer.insertBefore(menuToggle, nav);
     
-    // Toggle do menu
     menuToggle.addEventListener('click', function() {
         nav.classList.toggle('active');
         menuToggle.innerHTML = nav.classList.contains('active') 
@@ -334,7 +461,6 @@ document.addEventListener('DOMContentLoaded', function() {
             : '<i class="fas fa-bars"></i>';
     });
     
-    // Fechar menu ao clicar em um link
     nav.addEventListener('click', function(e) {
         if (e.target.tagName === 'A') {
             nav.classList.remove('active');
@@ -342,7 +468,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Fechar menu ao redimensionar para desktop
     window.addEventListener('resize', function() {
         if (window.innerWidth > 768) {
             nav.classList.remove('active');
@@ -350,6 +475,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
 // Finalizar compra via WhatsApp
 function checkout() {
     if (cart.length === 0) {
@@ -374,28 +500,22 @@ function checkout() {
     message += `*TOTAL DO PEDIDO: R$ ${total.toFixed(2)}*\n\n`;
     message += `Olá! Gostaria de finalizar minha compra com os produtos listados acima. Poderia me ajudar?`;
     
-    // Codificar a mensagem para URL
     const encodedMessage = encodeURIComponent(message);
-    
-    // Criar URL do WhatsApp
     const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
     
-    // Abrir WhatsApp em nova aba
     window.open(whatsappUrl, '_blank');
     
-    // Limpar carrinho após finalizar compra
     cart = [];
     saveCartToStorage();
     updateCartCounter();
     updateCartDisplay();
     
-    // Fechar modal do carrinho
     document.getElementById('cart-modal').style.display = 'none';
     
     showNotification('Pedido enviado para o WhatsApp!');
 }
 
-// ========== FUNÇÃO COMPRAR AGORA (ATUALIZADA) ==========
+// ========== FUNÇÃO COMPRAR AGORA (MANTIDA) ==========
 function buyNow(productId) {
     const product = currentProducts.find(p => p.id === productId);
     if (!product) {
@@ -403,20 +523,15 @@ function buyNow(productId) {
         return;
     }
 
-    // Mensagem formatada para o WhatsApp
     const message = `🛍️ *COMPRA DIRETA* 🛍️\n\n` +
                    `*Produto:* ${product.name}\n` +
                    `*Preço:* R$ ${product.price.toFixed(2)}\n` +
                    `*Categoria:* ${product.category}\n\n` +
                    `Olá! Gostaria de comprar este produto. Poderia me ajudar?`;
     
-    // Codificar a mensagem para URL
     const encodedMessage = encodeURIComponent(message);
-    
-    // Criar URL do WhatsApp
     const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
     
-    // Abrir WhatsApp em nova aba
     window.open(whatsappUrl, '_blank');
 }
 
@@ -443,9 +558,11 @@ function generateStars(rating) {
     return stars;
 }
 
+// ========== CONFIGURAÇÃO DE EVENT LISTENERS ATUALIZADA ==========
+
 // Configurar event listeners - ATUALIZADA
 function setupEventListeners() {
-    // Modal de Login - ATUALIZADO
+    // Modal de Login
     const loginBtn = document.getElementById('user-btn');
     const loginModal = document.getElementById('login-modal');
     const closeLoginModal = loginModal?.querySelector('.close-modal');
@@ -453,10 +570,8 @@ function setupEventListeners() {
     if (loginBtn && loginModal && closeLoginModal) {
         loginBtn.addEventListener('click', () => {
             if (currentUser) {
-                // Se usuário está logado, mostra informações
                 alert(`Logado como: ${currentUser.name}\nEmail: ${currentUser.email}`);
             } else {
-                // Se não está logado, abre modal
                 loginModal.style.display = 'flex';
             }
         });
@@ -466,7 +581,7 @@ function setupEventListeners() {
         });
     }
     
-    // Modal do Carrinho - ADICIONADO
+    // Modal do Carrinho
     const cartBtn = document.getElementById('cart-btn');
     const cartModal = document.getElementById('cart-modal');
     const closeCartModal = cartModal?.querySelector('.close-modal');
@@ -482,24 +597,23 @@ function setupEventListeners() {
         });
     }
     
-    // Fechar modais clicando fora - MANTIDO
+    // Fechar modais clicando fora
     document.addEventListener('click', (e) => {
         if (e.target.classList.contains('modal')) {
             e.target.style.display = 'none';
         }
     });
     
-    // Filtros de categoria - MANTIDO
+    // Filtros de categoria - ATUALIZADO
     const categoryBtns = document.querySelectorAll('.category-btn');
     categoryBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            categoryBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            filterProducts(btn.textContent);
+        btn.addEventListener('click', function() {
+            const categoryId = this.getAttribute('data-category-id') || this.getAttribute('data-category');
+            filterProductsByCategory(categoryId);
         });
     });
     
-    // Busca - MANTIDO
+    // Busca
     const searchInput = document.querySelector('.search-box input');
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
@@ -507,7 +621,7 @@ function setupEventListeners() {
         });
     }
     
-    // Ordenação - MANTIDO
+    // Ordenação
     const sortSelect = document.querySelector('.sort select');
     if (sortSelect) {
         sortSelect.addEventListener('change', (e) => {
@@ -515,7 +629,7 @@ function setupEventListeners() {
         });
     }
     
-    // NOVO: Event listener para formulário de login
+    // Event listener para formulário de login
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
         loginForm.addEventListener('submit', handleUserLogin);
@@ -527,7 +641,6 @@ function setupEventListeners() {
 
 // Verificar novos produtos do admin
 function checkForNewProducts() {
-    // Verificar a cada 5 segundos se há novos produtos
     setInterval(async () => {
         const adminProducts = localStorage.getItem('adminProducts');
         if (adminProducts) {
@@ -535,7 +648,6 @@ function checkForNewProducts() {
             const currentProductIds = currentProducts.map(p => p.id);
             const newProductIds = parsedProducts.map(p => p.id);
             
-            // Se há produtos diferentes, recarregar
             if (JSON.stringify(currentProductIds) !== JSON.stringify(newProductIds)) {
                 console.log('Novos produtos detectados, recarregando...');
                 await loadProducts();
@@ -608,7 +720,6 @@ async function handleUserLogin(e) {
         }
     } catch (error) {
         console.error('Erro:', error);
-        // Simulação de login para demonstração
         showLoading();
         setTimeout(() => {
             hideLoading();
@@ -705,7 +816,6 @@ function showLoginForm() {
         </div>
     `;
     
-    // Re-adicionar event listener
     loginForm.addEventListener('submit', handleUserLogin);
 }
 
@@ -751,7 +861,6 @@ async function handleUserRegister() {
         }
     } catch (error) {
         console.error('Erro:', error);
-        // Simulação de registro para demonstração
         showLoading();
         setTimeout(() => {
             hideLoading();
@@ -770,58 +879,9 @@ async function handleUserRegister() {
     }
 }
 
-// ========== FUNÇÕES DE FILTRO E BUSCA (ATUALIZADAS) ==========
+// ========== FUNÇÕES DE FILTRO E BUSCA (MANTIDAS) ==========
 
-// Filtrar produtos por categoria - ATUALIZADO
-function filterProducts(category) {
-    const productsContainer = document.getElementById('products-container');
-    const productsToShow = category === 'Todos' ? 
-        currentProducts : 
-        currentProducts.filter(product => product.category === category);
-    
-    productsContainer.innerHTML = '';
-    
-    if (productsToShow.length === 0) {
-        productsContainer.innerHTML = `
-            <div style="text-align: center; padding: 3rem; grid-column: 1 / -1;">
-                <i class="fas fa-search" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
-                <h3 style="color: #666; margin-bottom: 1rem;">Nenhum produto encontrado</h3>
-                <p style="color: #999;">Tente outra categoria ou busca.</p>
-            </div>
-        `;
-        return;
-    }
-    
-    productsToShow.forEach(product => {
-        const productCard = document.createElement('div');
-        productCard.className = 'product-card';
-        productCard.innerHTML = `
-            <img src="${product.image}" alt="${product.name}" class="product-image"
-                 onerror="this.src='https://via.placeholder.com/300x300?text=Produto+Sem+Imagem'">
-            <div class="product-info">
-                <h3 class="product-title">${product.name}</h3>
-                <div class="product-price">R$ ${product.price.toFixed(2)}</div>
-                <div class="product-rating">
-                    <div class="stars">
-                        ${generateStars(product.rating)}
-                    </div>
-                    <span>(${product.reviewCount})</span>
-                </div>
-                <div class="product-actions">
-                    <button class="buy-now-btn" onclick="buyNow(${product.id})">
-                        <i class="fab fa-whatsapp"></i> Comprar Agora
-                    </button>
-                    <button class="add-to-cart-btn" onclick="addToCart(${product.id})">
-                        <i class="fas fa-shopping-cart"></i> Carrinho
-                    </button>
-                </div>
-            </div>
-        `;
-        productsContainer.appendChild(productCard);
-    });
-}
-
-// Buscar produtos - ATUALIZADO
+// Buscar produtos - MANTIDA
 function searchProducts(query) {
     const filteredProducts = currentProducts.filter(product =>
         product.name.toLowerCase().includes(query.toLowerCase()) ||
@@ -871,7 +931,7 @@ function searchProducts(query) {
     });
 }
 
-// Ordenar produtos - ATUALIZADO
+// Ordenar produtos - MANTIDA
 function sortProducts(criteria) {
     let sortedProducts = [...currentProducts];
     
@@ -969,7 +1029,7 @@ function hideLoading() {
     }
 }
 
-// Função para forçar atualização dos produtos (pode ser chamada pelo admin)
+// Função para forçar atualização dos produtos
 function refreshProducts() {
     loadProducts();
     showNotification('Produtos atualizados!');
