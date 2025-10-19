@@ -1,26 +1,29 @@
-const express = require('express');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const cors = require('cors');
-const path = require('path');
+import express from 'express';
+import { createClient } from '@supabase/supabase-js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import cors from 'cors';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 
-const supabase = require('./config/database');
-
-// Novo uso com Supabase
-const { data, error } = await supabase
-  .from('produtos')
-  .select('*');
-
-if (error) throw error;
+// Para __dirname em ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
+const PORT = process.env.PORT || 10000;
+
+// Conexão com Supabase
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../frontend')));
 
-const JWT_SECRET = 'seu_jwt_secret_super_seguro_aqui';
+const JWT_SECRET = process.env.JWT_SECRET || 'seu_jwt_secret_super_seguro_aqui';
 
 // Middleware de autenticação
 const authenticateToken = async (req, res, next) => {
@@ -33,12 +36,14 @@ const authenticateToken = async (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
-        const [users] = await db.execute(
-            'SELECT id, username FROM admin_users WHERE id = ?', 
-            [decoded.id]
-        );
+        
+        // Buscar usuário no Supabase
+        const { data: users, error } = await supabase
+            .from('admin_users')
+            .select('id, username')
+            .eq('id', decoded.id);
 
-        if (users.length === 0) {
+        if (error || users.length === 0) {
             return res.status(403).json({ error: 'Usuário não encontrado' });
         }
 
@@ -48,6 +53,23 @@ const authenticateToken = async (req, res, next) => {
         return res.status(403).json({ error: 'Token inválido' });
     }
 };
+
+// Testar conexão com Supabase
+async function testSupabaseConnection() {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .limit(1);
+    
+    if (error) throw error;
+    console.log('✅ Conectado ao Supabase com sucesso!');
+  } catch (error) {
+    console.log('❌ Erro ao conectar ao Supabase:', error.message);
+  }
+}
+
+testSupabaseConnection();
 
 // Rotas públicas
 app.get('/', (req, res) => {
@@ -62,17 +84,41 @@ app.get('/admin-panel.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/admin-panel.html'));
 });
 
+// Rota de saúde da API
+app.get('/api/health', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .limit(1);
+    
+    if (error) throw error;
+    
+    res.json({ 
+      status: 'healthy', 
+      database: 'connected',
+      message: 'API e Supabase conectados com sucesso!'
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      database: 'disconnected',
+      error: error.message
+    });
+  }
+});
+
 // Login Admin
 app.post('/api/admin/login', async (req, res) => {
     const { username, password } = req.body;
 
     try {
-        const [users] = await db.execute(
-            'SELECT * FROM admin_users WHERE username = ?',
-            [username]
-        );
+        const { data: users, error } = await supabase
+            .from('admin_users')
+            .select('*')
+            .eq('username', username);
 
-        if (users.length === 0) {
+        if (error || users.length === 0) {
             return res.status(401).json({ error: 'Credenciais inválidas' });
         }
 
@@ -114,12 +160,12 @@ app.post('/api/users/login', async (req, res) => {
     const { email, password } = req.body;
 
     try {
-        const [users] = await db.execute(
-            'SELECT * FROM users WHERE email = ?',
-            [email]
-        );
+        const { data: users, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', email);
 
-        if (users.length === 0) {
+        if (error || users.length === 0) {
             return res.status(401).json({ error: 'Credenciais inválidas' });
         }
 
@@ -157,10 +203,12 @@ app.post('/api/users/register', async (req, res) => {
 
     try {
         // Verificar se usuário já existe
-        const [existingUsers] = await db.execute(
-            'SELECT id FROM users WHERE email = ?',
-            [email]
-        );
+        const { data: existingUsers, error: checkError } = await supabase
+            .from('users')
+            .select('id')
+            .eq('email', email);
+
+        if (checkError) throw checkError;
 
         if (existingUsers.length > 0) {
             return res.status(400).json({ error: 'E-mail já cadastrado' });
@@ -170,14 +218,22 @@ app.post('/api/users/register', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // Inserir usuário
-        const [result] = await db.execute(
-            'INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)',
-            [name, email, hashedPassword]
-        );
+        const { data: newUser, error: insertError } = await supabase
+            .from('users')
+            .insert([
+                {
+                    name: name,
+                    email: email,
+                    password_hash: hashedPassword
+                }
+            ])
+            .select();
+
+        if (insertError) throw insertError;
 
         // Gerar token
         const token = jwt.sign(
-            { id: result.insertId, email: email },
+            { id: newUser[0].id, email: email },
             JWT_SECRET,
             { expiresIn: '24h' }
         );
@@ -185,7 +241,7 @@ app.post('/api/users/register', async (req, res) => {
         res.status(201).json({
             token,
             user: {
-                id: result.insertId,
+                id: newUser[0].id,
                 name,
                 email
             }
@@ -197,34 +253,33 @@ app.post('/api/users/register', async (req, res) => {
     }
 });
 
-// Buscar produtos (público) - ATUALIZADA para incluir rating e review_count
+// Buscar produtos (público)
 app.get('/api/products', async (req, res) => {
     try {
-        const [products] = await db.execute(`
-            SELECT p.*, c.name as category_name,
-                   COALESCE(AVG(r.rating), 4.5) as rating,
-                   COUNT(r.id) as review_count
-            FROM products p 
-            LEFT JOIN categories c ON p.category_id = c.id 
-            LEFT JOIN product_reviews r ON p.id = r.product_id
-            WHERE p.status = 'active' 
-            GROUP BY p.id
-            ORDER BY p.created_at DESC
-        `);
-        
-        // Formatar os produtos para incluir rating e review_count
+        const { data: products, error } = await supabase
+            .from('products')
+            .select(`
+                *,
+                categories(name)
+            `)
+            .eq('status', 'active')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Formatar os produtos
         const formattedProducts = products.map(product => ({
             id: product.id,
             name: product.name,
             price: parseFloat(product.price),
-            category_name: product.category_name,
+            category_name: product.categories?.name || 'Sem categoria',
             image: product.image,
             description: product.description,
             stock: product.stock,
             rating: parseFloat(product.rating) || 4.5,
             review_count: product.review_count || Math.floor(Math.random() * 200) + 50
         }));
-        
+
         res.json(formattedProducts);
     } catch (error) {
         console.error('Erro ao buscar produtos:', error);
@@ -235,9 +290,13 @@ app.get('/api/products', async (req, res) => {
 // Buscar categorias (público)
 app.get('/api/categories', async (req, res) => {
     try {
-        const [categories] = await db.execute(`
-            SELECT * FROM categories WHERE status = 'active' ORDER BY name
-        `);
+        const { data: categories, error } = await supabase
+            .from('categories')
+            .select('*')
+            .eq('status', 'active')
+            .order('name');
+
+        if (error) throw error;
         res.json(categories);
     } catch (error) {
         console.error('Erro ao buscar categorias:', error);
@@ -245,7 +304,7 @@ app.get('/api/categories', async (req, res) => {
     }
 });
 
-// ========== NOVAS ROTAS PARA CARRINHO ==========
+// ========== ROTAS PARA CARRINHO ==========
 
 // Salvar carrinho do usuário
 app.post('/api/users/cart', async (req, res) => {
@@ -253,15 +312,26 @@ app.post('/api/users/cart', async (req, res) => {
 
     try {
         // Primeiro, remove o carrinho antigo do usuário
-        await db.execute('DELETE FROM user_carts WHERE user_id = ?', [userId]);
+        const { error: deleteError } = await supabase
+            .from('user_carts')
+            .delete()
+            .eq('user_id', userId);
+
+        if (deleteError) throw deleteError;
+
+        // Prepara os itens para inserção
+        const cartItems = cart.map(item => ({
+            user_id: userId,
+            product_id: item.id,
+            quantity: item.quantity
+        }));
 
         // Insere os novos itens do carrinho
-        for (const item of cart) {
-            await db.execute(
-                'INSERT INTO user_carts (user_id, product_id, quantity) VALUES (?, ?, ?)',
-                [userId, item.id, item.quantity]
-            );
-        }
+        const { error: insertError } = await supabase
+            .from('user_carts')
+            .insert(cartItems);
+
+        if (insertError) throw insertError;
 
         res.json({ message: 'Carrinho salvo com sucesso' });
     } catch (error) {
@@ -275,20 +345,24 @@ app.get('/api/users/:userId/cart', async (req, res) => {
     const { userId } = req.params;
 
     try {
-        const [cartItems] = await db.execute(`
-            SELECT uc.*, p.name, p.price, p.image, p.category_id, c.name as category_name
-            FROM user_carts uc
-            JOIN products p ON uc.product_id = p.id
-            LEFT JOIN categories c ON p.category_id = c.id
-            WHERE uc.user_id = ? AND p.status = 'active'
-        `, [userId]);
+        const { data: cartItems, error } = await supabase
+            .from('user_carts')
+            .select(`
+                *,
+                products(name, price, image, category_id),
+                categories(name)
+            `)
+            .eq('user_id', userId)
+            .eq('products.status', 'active');
+
+        if (error) throw error;
 
         const cart = cartItems.map(item => ({
             id: item.product_id,
-            name: item.name,
-            price: parseFloat(item.price),
-            image: item.image,
-            category: item.category_name,
+            name: item.products.name,
+            price: parseFloat(item.products.price),
+            image: item.products.image,
+            category: item.categories?.name,
             quantity: item.quantity
         }));
 
@@ -306,49 +380,58 @@ app.post('/api/orders/whatsapp', async (req, res) => {
     const { customerName, customerEmail, items, total, message } = req.body;
 
     try {
-        const connection = await db.getConnection();
-        await connection.beginTransaction();
+        // Criar pedido
+        const { data: order, error: orderError } = await supabase
+            .from('orders')
+            .insert([
+                {
+                    customer_name: customerName,
+                    customer_email: customerEmail,
+                    total_amount: total,
+                    payment_method: 'whatsapp',
+                    status: 'pending'
+                }
+            ])
+            .select();
 
-        try {
-            // Criar pedido
-            const [orderResult] = await connection.execute(
-                `INSERT INTO orders (customer_name, customer_email, total_amount, payment_method, status) 
-                 VALUES (?, ?, ?, 'whatsapp', 'pending')`,
-                [customerName, customerEmail, total]
-            );
+        if (orderError) throw orderError;
 
-            const orderId = orderResult.insertId;
+        const orderId = order[0].id;
 
-            // Adicionar itens do pedido
-            for (const item of items) {
-                await connection.execute(
-                    `INSERT INTO order_items (order_id, product_id, product_name, quantity, unit_price) 
-                     VALUES (?, ?, ?, ?, ?)`,
-                    [orderId, item.id, item.name, item.quantity, item.price]
-                );
-            }
+        // Adicionar itens do pedido
+        const orderItems = items.map(item => ({
+            order_id: orderId,
+            product_id: item.id,
+            product_name: item.name,
+            quantity: item.quantity,
+            unit_price: item.price
+        }));
 
-            // Registrar mensagem do WhatsApp
-            await connection.execute(
-                `INSERT INTO whatsapp_orders (order_id, customer_message, whatsapp_number) 
-                 VALUES (?, ?, ?)`,
-                [orderId, message, '559391445597']
-            );
+        const { error: itemsError } = await supabase
+            .from('order_items')
+            .insert(orderItems);
 
-            await connection.commit();
-            
-            res.status(201).json({ 
-                success: true,
-                orderId,
-                message: 'Pedido registrado com sucesso. Aguarde contato via WhatsApp.'
-            });
+        if (itemsError) throw itemsError;
 
-        } catch (error) {
-            await connection.rollback();
-            throw error;
-        } finally {
-            connection.release();
-        }
+        // Registrar mensagem do WhatsApp
+        const { error: whatsappError } = await supabase
+            .from('whatsapp_orders')
+            .insert([
+                {
+                    order_id: orderId,
+                    customer_message: message,
+                    whatsapp_number: '559391445597'
+                }
+            ]);
+
+        if (whatsappError) throw whatsappError;
+
+        res.status(201).json({ 
+            success: true,
+            orderId,
+            message: 'Pedido registrado com sucesso. Aguarde contato via WhatsApp.'
+        });
+
     } catch (error) {
         console.error('Erro ao criar pedido WhatsApp:', error);
         res.status(500).json({ 
@@ -358,42 +441,57 @@ app.post('/api/orders/whatsapp', async (req, res) => {
     }
 });
 
-// ========== ROTAS ADMINISTRATIVAS ATUALIZADAS ==========
+// ========== ROTAS ADMINISTRATIVAS ==========
 
-// Dashboard stats - ATUALIZADA
+// Dashboard stats
 app.get('/api/admin/stats', authenticateToken, async (req, res) => {
     try {
-        const [[{ totalProducts }]] = await db.execute(
-            'SELECT COUNT(*) as totalProducts FROM products WHERE status = "active"'
-        );
+        // Total de produtos
+        const { count: totalProducts } = await supabase
+            .from('products')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'active');
 
-        const [[{ totalCategories }]] = await db.execute(
-            'SELECT COUNT(*) as totalCategories FROM categories WHERE status = "active"'
-        );
+        // Total de categorias
+        const { count: totalCategories } = await supabase
+            .from('categories')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'active');
 
-        const [[{ totalValue }]] = await db.execute(
-            'SELECT COALESCE(SUM(price * stock), 0) as totalValue FROM products WHERE status = "active"'
-        );
+        // Valor total do estoque
+        const { data: productsValue } = await supabase
+            .from('products')
+            .select('price, stock')
+            .eq('status', 'active');
 
-        const [[{ totalOrders }]] = await db.execute(
-            'SELECT COUNT(*) as totalOrders FROM orders WHERE status != "cancelled"'
-        );
+        const totalValue = productsValue?.reduce((sum, product) => {
+            return sum + (parseFloat(product.price) * product.stock);
+        }, 0) || 0;
 
-        const [[{ pendingOrders }]] = await db.execute(
-            'SELECT COUNT(*) as pendingOrders FROM orders WHERE status = "pending"'
-        );
+        // Total de pedidos
+        const { count: totalOrders } = await supabase
+            .from('orders')
+            .select('*', { count: 'exact', head: true })
+            .neq('status', 'cancelled');
 
-        const [[{ totalUsers }]] = await db.execute(
-            'SELECT COUNT(*) as totalUsers FROM users'
-        );
+        // Pedidos pendentes
+        const { count: pendingOrders } = await supabase
+            .from('orders')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'pending');
+
+        // Total de usuários
+        const { count: totalUsers } = await supabase
+            .from('users')
+            .select('*', { count: 'exact', head: true });
 
         res.json({
-            totalProducts,
-            totalCategories,
-            totalValue: parseFloat(totalValue),
-            totalOrders,
-            pendingOrders,
-            totalUsers
+            totalProducts: totalProducts || 0,
+            totalCategories: totalCategories || 0,
+            totalValue: totalValue || 0,
+            totalOrders: totalOrders || 0,
+            pendingOrders: pendingOrders || 0,
+            totalUsers: totalUsers || 0
         });
     } catch (error) {
         console.error('Erro ao buscar estatísticas:', error);
@@ -404,14 +502,22 @@ app.get('/api/admin/stats', authenticateToken, async (req, res) => {
 // Buscar pedidos para admin
 app.get('/api/admin/orders', authenticateToken, async (req, res) => {
     try {
-        const [orders] = await db.execute(`
-            SELECT o.*, COUNT(oi.id) as items_count
-            FROM orders o
-            LEFT JOIN order_items oi ON o.id = oi.order_id
-            GROUP BY o.id
-            ORDER BY o.created_at DESC
-        `);
-        res.json(orders);
+        const { data: orders, error } = await supabase
+            .from('orders')
+            .select(`
+                *,
+                order_items(count)
+            `)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        const ordersWithCount = orders.map(order => ({
+            ...order,
+            items_count: order.order_items.length
+        }));
+
+        res.json(ordersWithCount);
     } catch (error) {
         console.error('Erro ao buscar pedidos:', error);
         res.status(500).json({ error: 'Erro ao buscar pedidos' });
@@ -423,20 +529,26 @@ app.get('/api/admin/orders/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
 
     try {
-        const [order] = await db.execute('SELECT * FROM orders WHERE id = ?', [id]);
-        const [items] = await db.execute(`
-            SELECT oi.*, p.image 
-            FROM order_items oi 
-            LEFT JOIN products p ON oi.product_id = p.id 
-            WHERE oi.order_id = ?
-        `, [id]);
+        const { data: order, error: orderError } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('id', id)
+            .single();
 
-        if (order.length === 0) {
-            return res.status(404).json({ error: 'Pedido não encontrado' });
-        }
+        if (orderError) throw orderError;
+
+        const { data: items, error: itemsError } = await supabase
+            .from('order_items')
+            .select(`
+                *,
+                products(image)
+            `)
+            .eq('order_id', id);
+
+        if (itemsError) throw itemsError;
 
         res.json({
-            ...order[0],
+            ...order,
             items
         });
     } catch (error) {
@@ -451,10 +563,15 @@ app.put('/api/admin/orders/:id/status', authenticateToken, async (req, res) => {
     const { status } = req.body;
 
     try {
-        await db.execute(
-            'UPDATE orders SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-            [status, id]
-        );
+        const { error } = await supabase
+            .from('orders')
+            .update({ 
+                status: status,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', id);
+
+        if (error) throw error;
 
         res.json({ message: 'Status do pedido atualizado com sucesso' });
     } catch (error) {
@@ -463,15 +580,18 @@ app.put('/api/admin/orders/:id/status', authenticateToken, async (req, res) => {
     }
 });
 
-// Gerenciar Produtos (Admin) - MANTIDO
+// Gerenciar Produtos (Admin)
 app.get('/api/admin/products', authenticateToken, async (req, res) => {
     try {
-        const [products] = await db.execute(`
-            SELECT p.*, c.name as category_name 
-            FROM products p 
-            LEFT JOIN categories c ON p.category_id = c.id 
-            ORDER BY p.created_at DESC
-        `);
+        const { data: products, error } = await supabase
+            .from('products')
+            .select(`
+                *,
+                categories(name)
+            `)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
         res.json(products);
     } catch (error) {
         console.error('Erro ao buscar produtos:', error);
@@ -483,18 +603,25 @@ app.post('/api/admin/products', authenticateToken, async (req, res) => {
     const { name, price, category_id, image, description, stock, status } = req.body;
 
     try {
-        const [result] = await db.execute(
-            `INSERT INTO products (name, price, category_id, image, description, stock, status) 
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [name, price, category_id, image, description, stock, status || 'active']
-        );
+        const { data: newProduct, error } = await supabase
+            .from('products')
+            .insert([
+                {
+                    name,
+                    price,
+                    category_id,
+                    image,
+                    description,
+                    stock,
+                    status: status || 'active'
+                }
+            ])
+            .select(`
+                *,
+                categories(name)
+            `);
 
-        const [newProduct] = await db.execute(`
-            SELECT p.*, c.name as category_name 
-            FROM products p 
-            LEFT JOIN categories c ON p.category_id = c.id 
-            WHERE p.id = ?
-        `, [result.insertId]);
+        if (error) throw error;
 
         res.status(201).json(newProduct[0]);
     } catch (error) {
@@ -508,20 +635,25 @@ app.put('/api/admin/products/:id', authenticateToken, async (req, res) => {
     const { name, price, category_id, image, description, stock, status } = req.body;
 
     try {
-        await db.execute(
-            `UPDATE products SET 
-                name = ?, price = ?, category_id = ?, image = ?, 
-                description = ?, stock = ?, status = ?, updated_at = CURRENT_TIMESTAMP 
-             WHERE id = ?`,
-            [name, price, category_id, image, description, stock, status, id]
-        );
+        const { data: updatedProduct, error } = await supabase
+            .from('products')
+            .update({
+                name,
+                price,
+                category_id,
+                image,
+                description,
+                stock,
+                status,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', id)
+            .select(`
+                *,
+                categories(name)
+            `);
 
-        const [updatedProduct] = await db.execute(`
-            SELECT p.*, c.name as category_name 
-            FROM products p 
-            LEFT JOIN categories c ON p.category_id = c.id 
-            WHERE p.id = ?
-        `, [id]);
+        if (error) throw error;
 
         res.json(updatedProduct[0]);
     } catch (error) {
@@ -534,7 +666,13 @@ app.delete('/api/admin/products/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
 
     try {
-        await db.execute('DELETE FROM products WHERE id = ?', [id]);
+        const { error } = await supabase
+            .from('products')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+
         res.json({ message: 'Produto excluído com sucesso' });
     } catch (error) {
         console.error('Erro ao excluir produto:', error);
@@ -542,12 +680,15 @@ app.delete('/api/admin/products/:id', authenticateToken, async (req, res) => {
     }
 });
 
-
-
-// Gerenciar Categorias - MANTIDO
+// Gerenciar Categorias
 app.get('/api/admin/categories', authenticateToken, async (req, res) => {
     try {
-        const [categories] = await db.execute('SELECT * FROM categories ORDER BY name');
+        const { data: categories, error } = await supabase
+            .from('categories')
+            .select('*')
+            .order('name');
+
+        if (error) throw error;
         res.json(categories);
     } catch (error) {
         console.error('Erro ao buscar categorias:', error);
@@ -555,11 +696,6 @@ app.get('/api/admin/categories', authenticateToken, async (req, res) => {
     }
 });
 
-//const PORT = process.env.PORT || 3000;
-//app.listen(PORT, () => {
-   //// console.log(`Servidor rodando na porta ${PORT}`);
-   // console.log(`Acesse: http://localhost:${PORT}`);
-//});
-const PORT = process.env.PORT || 3000;
-console.log(`Acesse: http://localhost:${PORT}`);
-app.listen(PORT, () => console.log(`✅ Servidor rodando na porta ${PORT}`));
+app.listen(PORT, () => {
+    console.log(`✅ Servidor rodando na porta ${PORT}`);
+});
