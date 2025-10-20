@@ -384,7 +384,7 @@ function loadCartFromStorage() {
     }
 }
 
-// Atualizar contador do carrinho 
+// Atualizar contador do carrinho - CORRIGIDA
 function updateCartCounter() {
     const cartCounter = document.getElementById('cart-count');
     const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
@@ -543,7 +543,7 @@ function checkout() {
     showNotification('Pedido enviado para o WhatsApp!');
 }
 
-// ========== FUNÇÃO COMPRAR AGORA  ==========
+// ========== FUNÇÃO COMPRAR AGORA (MANTIDA) ==========
 function buyNow(productId) {
     const product = currentProducts.find(p => p.id === productId);
     if (!product) {
@@ -1010,7 +1010,7 @@ function sortProducts(criteria) {
     });
 }
 
-// Mostrar notificação 
+// Mostrar notificação - MANTIDO
 function showNotification(message) {
     const notification = document.createElement('div');
     notification.style.cssText = `
@@ -1062,100 +1062,3 @@ function refreshProducts() {
     loadProducts();
     showNotification('Produtos atualizados!');
 }
-
-// Adicione este script ao seu arquivo JavaScript existente
-document.addEventListener('DOMContentLoaded', function() {
-    const fileInput = document.getElementById('product-image');
-    const uploadContainer = document.getElementById('upload-container');
-    const imagePreview = document.getElementById('image-preview');
-    const fileInfo = document.getElementById('file-info');
-    
-    // Clique na área de upload
-    uploadContainer.addEventListener('click', function(e) {
-        if (e.target !== fileInput) {
-            fileInput.click();
-        }
-    });
-    
-    // Drag and drop
-    uploadContainer.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        uploadContainer.style.background = '#e8eaff';
-        uploadContainer.style.borderColor = '#8a2be2';
-    });
-    
-    uploadContainer.addEventListener('dragleave', function() {
-        uploadContainer.style.background = '#f8f9ff';
-        uploadContainer.style.borderColor = '#8a2be2';
-    });
-    
-    uploadContainer.addEventListener('drop', function(e) {
-        e.preventDefault();
-        uploadContainer.style.background = '#f8f9ff';
-        uploadContainer.style.borderColor = '#8a2be2';
-        
-        if (e.dataTransfer.files.length) {
-            handleImageUpload(e.dataTransfer.files[0]);
-        }
-    });
-    
-    // Mudança no input de arquivo
-    fileInput.addEventListener('change', function(e) {
-        if (e.target.files.length) {
-            handleImageUpload(e.target.files[0]);
-        }
-    });
-    
-    function handleImageUpload(file) {
-        // Verificar se é imagem
-        if (!file.type.startsWith('image/')) {
-            alert('Por favor, selecione uma imagem válida.');
-            return;
-        }
-        
-        // Verificar tamanho (aumente o limite para 20MB)
-        if (file.size > 20 * 1024 * 1024) {
-            alert('Imagem muito grande. Máximo: 20MB');
-            return;
-        }
-        
-        // Atualizar informações do arquivo
-        fileInfo.textContent = `${file.name} (${formatFileSize(file.size)})`;
-        
-        // Criar preview
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            // Limpar preview anterior
-            imagePreview.innerHTML = '';
-            
-            // Criar nova imagem
-            const img = document.createElement('img');
-            img.src = e.target.result;
-            img.alt = 'Preview do produto';
-            
-            // Manter a qualidade original - sem compressão
-            img.style.imageRendering = 'high-quality';
-            
-            imagePreview.appendChild(img);
-            img.style.display = 'block';
-            
-            // Opcional: Mostrar informações da imagem
-            const info = document.createElement('div');
-            info.style.marginTop = '0.5rem';
-            info.style.color = '#666';
-            info.style.fontSize = '0.8rem';
-            info.innerHTML = `<i class="fas fa-info-circle"></i> Imagem carregada em alta qualidade`;
-            imagePreview.appendChild(info);
-        };
-        
-        reader.readAsDataURL(file);
-    }
-    
-    function formatFileSize(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-});

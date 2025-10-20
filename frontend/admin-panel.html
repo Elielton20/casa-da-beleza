@@ -172,36 +172,12 @@
                 </div>
 
                 <div class="form-group">
-    <label for="product-image">Imagem do Produto (Alta Qualidade)</label>
-    
-    <!-- Área de upload melhorada -->
-    <div class="upload-container" id="upload-container">
-        <label for="product-image" class="upload-label">
-            <i class="fas fa-camera"></i>
-            <span>Escolher Imagem</span>
-        </label>
-        <input type="file" 
-               id="product-image" 
-               accept="image/*" 
-               capture="environment"
-               class="hidden">
-        <div class="file-info" id="file-info">Nenhum arquivo escolhido</div>
-    </div>
-    
-    <!-- Preview da imagem -->
-    <div class="image-preview" id="image-preview">
-        <i class="fas fa-image"></i>
-        <span>Prévia da imagem aparecerá aqui</span>
-    </div>
-    
-    <!-- Dicas de qualidade -->
-    <div class="quality-tips">
-        <small>
-            <i class="fas fa-lightbulb"></i>
-            Dica: Use a câmera traseira do iPhone para melhor qualidade
-        </small>
-    </div>
-</div>
+                    <label for="product-image">Imagem do Produto</label>
+                    <input type="file" id="product-image" accept="image/*">
+                    <div class="image-preview" id="image-preview">
+                        <i class="fas fa-image" style="color: #ccc;"></i>
+                    </div>
+                </div>
 
                 <div class="form-actions">
                     <button type="button" class="btn-cancel">Cancelar</button>
