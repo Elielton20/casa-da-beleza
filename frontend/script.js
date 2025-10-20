@@ -69,6 +69,63 @@ const WHATSAPP_NUMBER = "559391445597";
 
 // Função para carregar produtos do servidor - ATUALIZADA
 // Função para carregar produtos - VERSÃO DEBUG CORRIGIDA
+async function loadProductsFromStorage() {
+    try {
+        console.log('🔄 Iniciando carregamento de produtos...');
+        
+        // DEBUG: Verifica se o Supabase está inicializado
+        console.log('🔧 Supabase config:', { supabaseUrl, supabaseKey, supabase: !!supabase });
+        
+        // Tenta carregar do Supabase
+        if (supabase && supabaseUrl && supabaseKey) {
+            console.log('📡 Conectando ao Supabase...');
+            
+            const { data: products, error } = await supabase
+                .from('products')
+                .select(`
+                    id,
+                    name, 
+                    price,
+                    image,
+                    category_id,
+                    categories (name)
+                `)
+                .order('name');
+
+            console.log('📦 Resposta do Supabase:', { products, error });
+            
+            if (!error && products && products.length > 0) {
+                console.log('✅ Produtos carregados do Supabase:', products.length);
+                
+                const produtosFormatados = products.map(product => ({
+                    id: product.id,
+                    name: product.name,
+                    price: parseFloat(product.price),
+                    category_id: product.category_id,
+                    category: product.categories?.name || 'Sem categoria',
+                    image: product.image || 'https://via.placeholder.com/300x300?text=Produto+Sem+Imagem',
+                    rating: 4.5,
+                    reviewCount: Math.floor(Math.random() * 200) + 50
+                }));
+                
+                console.log('🎯 Produtos formatados:', produtosFormatados);
+                return produtosFormatados;
+            } else {
+                console.error('❌ Erro ao carregar do Supabase:', error);
+            }
+        }
+        
+        // Fallback para produtos locais
+        console.log('🔄 Usando produtos locais como fallback');
+        return initialProducts;
+        
+    } catch (error) {
+        console.error('💥 Erro crítico ao carregar produtos:', error);
+        console.log('🔄 Usando produtos locais');
+        return initialProducts;
+    }
+}
+// Função para carregar categorias da API - NOVA
 // Função para carregar produtos - VERSÃO ATUALIZADA PARA INTEGRAÇÃO COM ADMIN
 async function loadProductsFromStorage() {
     try {
@@ -163,23 +220,6 @@ function getCategoryId(categoryName) {
     };
     return categories[categoryName] || 1;
 }
-
-// Função para atualizar botões de categoria - NOVA
-async function updateCategoryButtons() {
-    try {
-        const categories = await loadCategoriesFromAPI();
-        const categoriesContainer = document.querySelector('.categories');
-        
-        if (!categoriesContainer) {
-            console.error('❌ Container de categorias não encontrado');
-            return;
-        }
-        
-        if (categories.length === 0) {
-            console.log('ℹ️ Nenhuma categoria encontrada, usando categorias padrão');
-            return;
-        }
-        
         // Limpa categorias existentes (exceto "Todos")
         const existingButtons = categoriesContainer.querySelectorAll('.category-btn');
         existingButtons.forEach(btn => {
