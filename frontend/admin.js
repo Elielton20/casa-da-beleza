@@ -398,5 +398,178 @@ class ProductManager {
     }
 }
 
+// Sistema de Upload de Imagens para iPhone
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('product-image');
+    const uploadContainer = document.getElementById('upload-container');
+    const imagePreview = document.getElementById('image-preview');
+    const fileInfo = document.getElementById('file-info');
+    
+    if (!fileInput || !uploadContainer) return;
+    
+    // Clique na área de upload
+    uploadContainer.addEventListener('click', function(e) {
+        if (e.target !== fileInput) {
+            fileInput.click();
+        }
+    });
+    
+    // Drag and drop
+    uploadContainer.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        uploadContainer.style.background = '#e8eaff';
+        uploadContainer.style.borderColor = '#8a2be2';
+    });
+    
+    uploadContainer.addEventListener('dragleave', function() {
+        uploadContainer.style.background = '#f8f9ff';
+        uploadContainer.style.borderColor = '#8a2be2';
+    });
+    
+    uploadContainer.addEventListener('drop', function(e) {
+        e.preventDefault();
+        uploadContainer.style.background = '#f8f9ff';
+        uploadContainer.style.borderColor = '#8a2be2';
+        
+        if (e.dataTransfer.files.length) {
+            handleImageUpload(e.dataTransfer.files[0]);
+        }
+    });
+    
+    // Mudança no input de arquivo
+    fileInput.addEventListener('change', function(e) {
+        if (e.target.files.length) {
+            handleImageUpload(e.target.files[0]);
+        }
+    });
+    
+    function handleImageUpload(file) {
+        // Verificar se é imagem
+        if (!file.type.startsWith('image/')) {
+            alert('Por favor, selecione uma imagem válida.');
+            return;
+        }
+        
+        // Verificar tamanho (aumente o limite para 20MB)
+        if (file.size > 20 * 1024 * 1024) {
+            alert('Imagem muito grande. Máximo: 20MB');
+            return;
+        }
+        
+        // Atualizar informações do arquivo
+        fileInfo.textContent = `${file.name} (${formatFileSize(file.size)})`;
+        
+        // Criar preview
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            // Limpar preview anterior
+            imagePreview.innerHTML = '';
+            
+            // Criar nova imagem
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            img.alt = 'Preview do produto';
+            
+            // Manter a qualidade original - sem compressão
+            img.style.imageRendering = 'high-quality';
+            
+            imagePreview.appendChild(img);
+            img.style.display = 'block';
+            
+            // Mostrar informações da imagem
+            const info = document.createElement('div');
+            info.style.marginTop = '0.5rem';
+            info.style.color = '#666';
+            info.style.fontSize = '0.8rem';
+            info.innerHTML = `<i class="fas fa-info-circle"></i> Imagem carregada em alta qualidade`;
+            imagePreview.appendChild(info);
+        };
+        
+        reader.readAsDataURL(file);
+    }
+    
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+});
+
+// Modificar a função de salvar produto para lidar com imagens
+function saveProductWithImage(productData, imageFile) {
+    return new Promise((resolve, reject) => {
+        if (imageFile) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Adiciona a imagem convertida para base64 aos dados do produto
+                productData.image = e.target.result;
+                resolve(productData);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(imageFile);
+        } else {
+            resolve(productData);
+        }
+    });
+}
+
+// Exemplo de como usar na função de salvar produto
+async function saveProduct(formData) {
+    const imageFile = document.getElementById('product-image').files[0];
+    
+    try {
+        const productData = {
+            name: document.getElementById('product-name').value,
+            price: parseFloat(document.getElementById('product-price').value),
+            category: document.getElementById('product-category').value,
+            stock: parseInt(document.getElementById('product-stock').value),
+            status: document.getElementById('product-status').value,
+            description: document.getElementById('product-description').value
+        };
+        
+        // Processar imagem se existir
+        const productWithImage = await saveProductWithImage(productData, imageFile);
+        
+        // Salvar no localStorage ou enviar para API
+        saveProductToStorage(productWithImage);
+        
+        // Fechar modal e recarregar lista
+        closeModal('product-modal');
+        loadProductsList();
+        
+        showNotification('Produto salvo com sucesso!');
+        
+    } catch (error) {
+        console.error('Erro ao salvar produto:', error);
+        alert('Erro ao salvar produto. Tente novamente.');
+    }
+}
+
+function saveProductToStorage(product) {
+    // Recuperar produtos existentes
+    let products = JSON.parse(localStorage.getItem('adminProducts')) || [];
+    
+    // Adicionar ID se for novo produto
+    if (!product.id) {
+        product.id = Date.now();
+        product.createdAt = new Date().toISOString();
+    }
+    
+    // Atualizar se já existe, ou adicionar novo
+    const existingIndex = products.findIndex(p => p.id === product.id);
+    if (existingIndex >= 0) {
+        products[existingIndex] = product;
+    } else {
+        products.push(product);
+    }
+    
+    // Salvar no localStorage
+    localStorage.setItem('adminProducts', JSON.stringify(products));
+    
+    // Atualizar estatísticas
+    updateAdminStats();
+}
 // Inicializar o gerenciador de produtos
 const productManager = new ProductManager();

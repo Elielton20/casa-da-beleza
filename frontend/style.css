@@ -2170,6 +2170,7 @@ footer {
 .container {
   overflow-x: visible !important;
 }
+
 /* ========== UPLOAD DE IMAGEM ALTA QUALIDADE ========== */
 .upload-container {
     border: 2px dashed #8a2be2;
@@ -2263,4 +2264,18 @@ footer {
 
 .quality-tips i {
     color: #ffc107;
+}
+
+/* Container para tabela com rolagem */
+.tabela-container {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: white;
+}
+
+.tabela-container table {
+    min-width: 800px;
+    width: 100%;
 }
