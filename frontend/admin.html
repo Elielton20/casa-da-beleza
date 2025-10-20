@@ -3,310 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerenciar Produtos - Casa da Beleza</title>
+    <title>Login Admin - Casa da Beleza</title>
+    <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* ESTILO EXISTENTE - NÃO MODIFICADO */
-        :root {
-            --primary-color: #8a2be2;
-            --secondary-color: #da70d6;
-            --text-dark: #333;
-            --text-light: #666;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        body {
-            background-color: #f9f9f9;
-            color: var(--text-dark);
-            line-height: 1.6;
-            padding: 20px;
-        }
-        
-        /* APENAS ISSO FOI ADICIONADO PARA A ROLAGEM */
-        .scroll-container {
-            width: 100%;
-            overflow-x: auto;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-        }
-        
-        table {
-            width: 100%;
-            min-width: 800px; /* Força a rolagem horizontal em telas menores */
-        }
-        
-        /* FIM DO QUE FOI ADICIONADO */
-        
-        /* SEU CÓDIGO ORIGINAL - NÃO MODIFICADO */
-        .admin-panel {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            overflow: hidden;
-            margin-bottom: 2rem;
-        }
-        
-        .panel-header {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            padding: 1.5rem 2rem;
-        }
-        
-        .panel-header h1 {
+        .admin-login-container {
+            min-height: 100vh;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .panel-content {
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
             padding: 2rem;
         }
         
-        .quick-actions {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-        
-        .action-card {
+        .admin-login-box {
             background: white;
-            padding: 1.5rem;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            text-align: center;
-            border-left: 4px solid var(--primary-color);
-        }
-        
-        .action-card h3 {
-            color: var(--primary-color);
-            margin-bottom: 0.5rem;
-        }
-        
-        .search-box {
-            display: flex;
-            margin-bottom: 1.5rem;
-        }
-        
-        .search-input {
-            flex: 1;
-            padding: 0.8rem 1rem;
-            border: 1px solid #ddd;
-            border-radius: 8px 0 0 8px;
-            font-size: 1rem;
-        }
-        
-        .search-btn {
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 0 8px 8px 0;
-            padding: 0 1.5rem;
-            cursor: pointer;
-        }
-        
-        table {
-            border-collapse: collapse;
+            padding: 3rem;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             width: 100%;
+            max-width: 400px;
+            text-align: center;
         }
         
-        th, td {
-            padding: 1rem;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-        
-        th {
-            background-color: #f5f5f5;
-            font-weight: 600;
+        .admin-login-box h1 {
             color: var(--text-dark);
-        }
-        
-        tr:hover {
-            background-color: #f9f9f9;
-        }
-        
-        .action-buttons {
+            margin-bottom: 0.5rem;
             display: flex;
+            align-items: center;
+            justify-content: center;
             gap: 0.5rem;
         }
         
-        .btn {
-            padding: 0.5rem 0.8rem;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
+        .admin-login-box p {
+            color: var(--text-light);
+            margin-bottom: 2rem;
         }
         
-        .btn-edit {
-            background-color: #ffc107;
-            color: #333;
-        }
-        
-        .btn-delete {
-            background-color: #dc3545;
-            color: white;
+        .admin-logo {
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
         }
     </style>
 </head>
 <body>
-    <div class="admin-panel">
-        <div class="panel-header">
-            <h1><i class="fas fa-boxes"></i> Gerenciar Produtos</h1>
-        </div>
-        
-        <div class="panel-content">
-            <h2>Ações Rápidas</h2>
-            <div class="quick-actions">
-                <div class="action-card">
-                    <h3>Adicionar Produto</h3>
-                </div>
-                <div class="action-card">
-                    <h3>Gerenciar Categorias</h3>
-                </div>
-                <div class="action-card">
-                    <h3>Alterar Preços</h3>
-                </div>
-                <div class="action-card">
-                    <h3>Upload em Massa</h3>
-                </div>
+    <div class="admin-login-container">
+        <div class="admin-login-box">
+            <div class="admin-logo">
+                 <img src="imagem/ChatGPT Image 9 de out. de 2025, 16_11_16.png"  width="100" height="80">
+
+                
             </div>
+            <h1><i class="fas fa-lock"></i> Área Administrativa</h1>
+            <p>Acesso restrito à equipe autorizada</p>
             
-            <div class="search-box">
-                <input type="text" class="search-input" placeholder="Buscar produtos...">
-                <button class="search-btn"><i class="fas fa-search"></i></button>
-            </div>
+            <form id="admin-login-form">
+                <div class="form-group">
+                    <label for="admin-username">Usuário</label>
+                    <input type="text" id="admin-username" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="admin-password">Senha</label>
+                    <input type="password" id="admin-password" required>
+                </div>
+                
+                <button type="submit" class="login-btn" style="width: 100%; margin: 1rem 0;">
+                    <i class="fas fa-sign-in-alt"></i> Entrar no Painel
+                </button>
+                
+                <div id="login-message" style="color: #dc3545; margin-top: 1rem; display: none;">
+                    <i class="fas fa-exclamation-triangle"></i> Credenciais inválidas!
+                </div>
+            </form>
             
-            <!-- APENES ADICIONEI ESTE CONTAINER PARA ROLAGEM -->
-            <div class="scroll-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Imagem</th>
-                            <th>Nome</th>
-                            <th>Preço</th>
-                            <th>Categoria</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>batom</td>
-                            <td>Batom</td>
-                            <td>R$ 20,00</td>
-                            <td>undefi</td>
-                            <td>
-                                <div class="action-buttons">
-                                    <button class="btn btn-edit"><i class="fas fa-edit"></i> Editar</button>
-                                    <button class="btn btn-delete"><i class="fas fa-trash"></i> Excluir</button>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>-</td>
-                            <td>Protetor Solar FPS 50</td>
-                            <td>R$ 59,90</td>
-                            <td>undefi</td>
-                            <td>
-                                <div class="action-buttons">
-                                    <button class="btn btn-edit"><i class="fas fa-edit"></i> Editar</button>
-                                    <button class="btn btn-delete"><i class="fas fa-trash"></i> Excluir</button>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>-</td>
-                            <td>Batom Vermelho Matte</td>
-                            <td>R$ 29,90</td>
-                            <td>undefi</td>
-                            <td>
-                                <div class="action-buttons">
-                                    <button class="btn btn-edit"><i class="fas fa-edit"></i> Editar</button>
-                                    <button class="btn btn-delete"><i class="fas fa-trash"></i> Excluir</button>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>-</td>
-                            <td>Base Líquida Alta Cobertura</td>
-                            <td>R$ 49,90</td>
-                            <td>undefi</td>
-                            <td>
-                                <div class="action-buttons">
-                                    <button class="btn btn-edit"><i class="fas fa-edit"></i> Editar</button>
-                                    <button class="btn btn-delete"><i class="fas fa-trash"></i> Excluir</button>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>-</td>
-                            <td>Perfume Floral Suave</td>
-                            <td>R$ 89,90</td>
-                            <td>undefi</td>
-                            <td>
-                                <div class="action-buttons">
-                                    <button class="btn btn-edit"><i class="fas fa-edit"></i> Editar</button>
-                                    <button class="btn btn-delete"><i class="fas fa-trash"></i> Excluir</button>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>-</td>
-                            <td>Colônia Masculina</td>
-                            <td>R$ 99,90</td>
-                            <td>undefi</td>
-                            <td>
-                                <div class="action-buttons">
-                                    <button class="btn btn-edit"><i class="fas fa-edit"></i> Editar</button>
-                                    <button class="btn btn-delete"><i class="fas fa-trash"></i> Excluir</button>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>-</td>
-                            <td>Creme Facial Hidratante</td>
-                            <td>R$ 89,90</td>
-                            <td>undefi</td>
-                            <td>
-                                <div class="action-buttons">
-                                    <button class="btn btn-edit"><i class="fas fa-edit"></i> Editar</button>
-                                    <button class="btn btn-delete"><i class="fas fa-trash"></i> Excluir</button>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #eee;">
+                <a href="index.html" style="color: var(--text-light); text-decoration: none;">
+                    <i class="fas fa-arrow-left"></i> Voltar para a Loja
+                </a>
             </div>
-            <!-- FIM DO CONTAINER DE ROLAGEM -->
         </div>
     </div>
 
     <script>
-        // JavaScript existente - não modificado
-        document.querySelectorAll('.btn-edit').forEach(button => {
-            button.addEventListener('click', function() {
-                const productName = this.closest('tr').cells[1].textContent;
-                alert(`Editando: ${productName}`);
-            });
-        });
-        
-        document.querySelectorAll('.btn-delete').forEach(button => {
-            button.addEventListener('click', function() {
-                const productName = this.closest('tr').cells[1].textContent;
-                if(confirm(`Tem certeza que deseja excluir ${productName}?`)) {
-                    this.closest('tr').remove();
+        document.getElementById('admin-login-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('admin-username').value;
+            const password = document.getElementById('admin-password').value;
+            const message = document.getElementById('login-message');
+            
+            try {
+                const response = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    localStorage.setItem('adminToken', data.token);
+                    localStorage.setItem('adminUser', JSON.stringify(data.user));
+                    window.location.href = 'admin-panel.html';
+                } else {
+                    message.textContent = data.error;
+                    message.style.display = 'block';
                 }
-            });
+            } catch (error) {
+                message.textContent = 'Erro de conexão. Tente novamente.';
+                message.style.display = 'block';
+            }
         });
     </script>
 </body>
