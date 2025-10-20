@@ -126,100 +126,37 @@ async function loadProductsFromStorage() {
     }
 }
 // Função para carregar categorias da API - NOVA
-// Função para carregar produtos - VERSÃO ATUALIZADA PARA INTEGRAÇÃO COM ADMIN
-async function loadProductsFromStorage() {
+async function loadCategoriesFromAPI() {
     try {
-        console.log('🔄 Iniciando carregamento de produtos...');
+        console.log('🔄 Carregando categorias da API...');
+        const response = await fetch('/api/categories');
+        if (!response.ok) throw new Error('Erro ao carregar categorias');
+        const categories = await response.json();
         
-        // 🔥 PRIMEIRO: Tenta carregar do localStorage (produtos do admin)
-        const storedProducts = localStorage.getItem('products');
-        if (storedProducts) {
-            const products = JSON.parse(storedProducts);
-            console.log('✅ Produtos carregados do localStorage (admin):', products.length);
-            
-            // Formatar produtos para o padrão da loja
-            const produtosFormatados = products.map(product => ({
-                id: product.id,
-                name: product.name,
-                price: parseFloat(product.price),
-                category: product.category,
-                category_id: product.category_id || this.getCategoryId(product.category),
-                image: product.image,
-                rating: product.rating || 4.5,
-                reviewCount: product.reviewCount || Math.floor(Math.random() * 200) + 50,
-                stock: product.stock || 0,
-                status: product.status || 'active',
-                description: product.description || ''
-            }));
-            
-            console.log('🎯 Produtos formatados da loja:', produtosFormatados);
-            return produtosFormatados;
-        }
-
-        // DEBUG: Verifica se o Supabase está inicializado
-        console.log('🔧 Supabase config:', { supabaseUrl, supabaseKey, supabase: !!supabase });
-        
-        // Tenta carregar do Supabase
-        if (supabase && supabaseUrl && supabaseKey) {
-            console.log('📡 Conectando ao Supabase...');
-            
-            const { data: products, error } = await supabase
-                .from('products')
-                .select(`
-                    id,
-                    name, 
-                    price,
-                    image,
-                    category_id,
-                    categories (name)
-                `)
-                .order('name');
-
-            console.log('📦 Resposta do Supabase:', { products, error });
-            
-            if (!error && products && products.length > 0) {
-                console.log('✅ Produtos carregados do Supabase:', products.length);
-                
-                const produtosFormatados = products.map(product => ({
-                    id: product.id,
-                    name: product.name,
-                    price: parseFloat(product.price),
-                    category_id: product.category_id,
-                    category: product.categories?.name || 'Sem categoria',
-                    image: product.image || 'https://via.placeholder.com/300x300?text=Produto+Sem+Imagem',
-                    rating: 4.5,
-                    reviewCount: Math.floor(Math.random() * 200) + 50
-                }));
-                
-                console.log('🎯 Produtos formatados:', produtosFormatados);
-                return produtosFormatados;
-            } else {
-                console.error('❌ Erro ao carregar do Supabase:', error);
-            }
-        }
-        
-        // Fallback para produtos locais
-        console.log('🔄 Usando produtos locais como fallback');
-        return initialProducts;
-        
+        console.log('✅ Categorias carregadas:', categories);
+        return categories;
     } catch (error) {
-        console.error('💥 Erro crítico ao carregar produtos:', error);
-        console.log('🔄 Usando produtos locais');
-        return initialProducts;
+        console.error('❌ Erro ao carregar categorias:', error);
+        return [];
     }
 }
 
-// Função auxiliar para obter ID da categoria
-function getCategoryId(categoryName) {
-    const categories = {
-        'Maquiagem': 1,
-        'Skincare': 2,
-        'Cabelos': 3,
-        'Perfumes': 4,
-        'Corpo e Banho': 5
-    };
-    return categories[categoryName] || 1;
-}
+// Função para atualizar botões de categoria - NOVA
+async function updateCategoryButtons() {
+    try {
+        const categories = await loadCategoriesFromAPI();
+        const categoriesContainer = document.querySelector('.categories');
+        
+        if (!categoriesContainer) {
+            console.error('❌ Container de categorias não encontrado');
+            return;
+        }
+        
+        if (categories.length === 0) {
+            console.log('ℹ️ Nenhuma categoria encontrada, usando categorias padrão');
+            return;
+        }
+        
         // Limpa categorias existentes (exceto "Todos")
         const existingButtons = categoriesContainer.querySelectorAll('.category-btn');
         existingButtons.forEach(btn => {
