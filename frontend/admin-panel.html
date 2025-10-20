@@ -122,38 +122,63 @@
              
 
     <!-- Modal Adicionar/Editar Produto -->
-    
-             <div class="form-group">
-                <label for="product-image">Imagem do Produto (Alta Qualidade)</label>
-    
-                      <!-- Área de upload melhorada -->
-                <div class="upload-container" id="upload-container">
-                   <label for="product-image" class="upload-label">
-                      <i class="fas fa-camera"></i>
-                      <span>Escolher Imagem</span>
-                   </label>
-                   <input type="file" 
-                          id="product-image" 
-                          accept="image/*" 
-                          capture="environment"
-                          class="hidden">
-                   <div class="file-info" id="file-info">Nenhum arquivo escolhido</div>
-                   </div>
-    
-    <!-- Preview da imagem -->
-    <div class="image-preview" id="image-preview">
-        <i class="fas fa-image"></i>
-        <span>Prévia aparecerá aqui</span>
-    </div>
-    
-    <!-- Dicas de qualidade -->
-    <div class="quality-tips">
-        <small>
-            <i class="fas fa-lightbulb"></i>
-            Dica: Use a câmera traseira do iPhone para melhor qualidade
-        </small>
-    </div>
-</div>
+    <div class="modal product-form-modal" id="product-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="product-modal-title">Adicionar Novo Produto</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="product-form">
+                <div class="form-group">
+                    <label for="product-name">Nome do Produto</label>
+                    <input type="text" id="product-name" required>
+                </div>
+                
+                <div class="form-group-row">
+                    <div class="form-group">
+                        <label for="product-price">Preço (R$)</label>
+                        <input type="number" id="product-price" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-category">Categoria</label>
+                        <select id="product-category" required>
+                            <option value="">Selecione...</option>
+                            <option value="Maquiagem">Maquiagem</option>
+                            <option value="Skincare">Skincare</option>
+                            <option value="Cabelos">Cabelos</option>
+                            <option value="Perfumes">Perfumes</option>
+                            <option value="Corpo e Banho">Corpo e Banho</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group-row">
+                    <div class="form-group">
+                        <label for="product-stock">Estoque</label>
+                        <input type="number" id="product-stock" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="product-status">Status</label>
+                        <select id="product-status">
+                            <option value="active">Ativo</option>
+                            <option value="inactive">Inativo</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="product-description">Descrição</label>
+                    <textarea id="product-description" rows="3"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="product-image">Imagem do Produto</label>
+                    <input type="file" id="product-image" accept="image/*">
+                    <div class="image-preview" id="image-preview">
+                        <i class="fas fa-image" style="color: #ccc;"></i>
+                    </div>
+                </div>
+
                 <div class="form-actions">
                     <button type="button" class="btn-cancel">Cancelar</button>
                     <button type="submit" class="btn-save">Salvar Produto</button>
