@@ -2137,22 +2137,35 @@ footer {
     }
 }
 
-/* === Rolagem horizontal na tabela (mobile) === */
+/* === SCROLL HORIZONTAL NA TABELA (MOBILE) === */
 .tabela-container {
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch; /* rolagem suave no celular */
 }
 
-.tabela-produtos {
+.products-table {
   width: 100%;
-  min-width: 600px; /* força o scroll lateral */
+  min-width: 800px; /* força o scroll lateral */
   border-collapse: collapse;
 }
 
-.tabela-produtos th,
-.tabela-produtos td {
-  padding: 10px;
+.products-table th,
+.products-table td {
+  padding: 10px 12px;
   text-align: left;
-  white-space: nowrap; /* impede quebra de linha */
+  white-space: nowrap; /* evita quebra de linha */
+  border-bottom: 1px solid #ddd;
+}
+
+.products-table thead {
+  background-color: #f8f8f8;
+  font-weight: bold;
+}
+
+.products-table img {
+  border-radius: 8px;
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
 }
