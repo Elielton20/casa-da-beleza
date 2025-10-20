@@ -3,119 +3,584 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Admin - Casa da Beleza</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Painel Admin - Casa da Beleza</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .admin-login-container {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            padding: 2rem;
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
         }
-        
-        .admin-login-box {
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .admin-header {
             background: white;
-            padding: 3rem;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 400px;
-            text-align: center;
-        }
-        
-        .admin-login-box h1 {
-            color: var(--text-dark);
-            margin-bottom: 0.5rem;
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .admin-actions {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--warning-color);
+            color: #212529;
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .product-image {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+
+        .action-buttons {
+            display: flex;
             gap: 0.5rem;
         }
-        
-        .admin-login-box p {
-            color: var(--text-light);
-            margin-bottom: 2rem;
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
         }
-        
-        .admin-logo {
-            font-size: 3rem;
-            color: var(--primary-color);
+
+        .modal-content {
+            background: white;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .form-group {
             margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            height: 100px;
+            resize: vertical;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .admin-header {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .admin-actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .action-buttons .btn {
+                width: 100%;
+            }
+
+            th, td {
+                padding: 0.75rem;
+            }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #6c757d;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #6c757d;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #dee2e6;
         }
     </style>
 </head>
 <body>
-    <div class="admin-login-container">
-        <div class="admin-login-box">
-            <div class="admin-logo">
-                 <img src="imagem/ChatGPT Image 9 de out. de 2025, 16_11_16.png"  width="100" height="80">
-
-                
-            </div>
-            <h1><i class="fas fa-lock"></i> Área Administrativa</h1>
-            <p>Acesso restrito à equipe autorizada</p>
-            
-            <form id="admin-login-form">
-                <div class="form-group">
-                    <label for="admin-username">Usuário</label>
-                    <input type="text" id="admin-username" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="admin-password">Senha</label>
-                    <input type="password" id="admin-password" required>
-                </div>
-                
-                <button type="submit" class="login-btn" style="width: 100%; margin: 1rem 0;">
-                    <i class="fas fa-sign-in-alt"></i> Entrar no Painel
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1>🏪 Painel Administrativo</h1>
+            <div>
+                <span id="admin-user">Usuário: Admin</span>
+                <button class="btn btn-warning" onclick="logout()" style="margin-left: 1rem;">
+                    <i class="fas fa-sign-out-alt"></i> Sair
                 </button>
-                
-                <div id="login-message" style="color: #dc3545; margin-top: 1rem; display: none;">
-                    <i class="fas fa-exclamation-triangle"></i> Credenciais inválidas!
-                </div>
-            </form>
-            
-            <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #eee;">
-                <a href="index.html" style="color: var(--text-light); text-decoration: none;">
-                    <i class="fas fa-arrow-left"></i> Voltar para a Loja
-                </a>
+            </div>
+        </div>
+
+        <div class="admin-actions">
+            <button class="btn btn-primary" onclick="openProductModal()">
+                <i class="fas fa-plus"></i> Novo Produto
+            </button>
+            <button class="btn btn-success" onclick="refreshProducts()">
+                <i class="fas fa-sync"></i> Atualizar
+            </button>
+        </div>
+
+        <div class="table-container">
+            <table id="products-table">
+                <thead>
+                    <tr>
+                        <th>Imagem</th>
+                        <th>Nome</th>
+                        <th>Preço</th>
+                        <th>Categoria</th>
+                        <th>Estoque</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="products-table-body">
+                    <!-- Produtos serão inseridos aqui via JavaScript -->
+                </tbody>
+            </table>
+        </div>
+
+        <div id="loading" class="loading">
+            <i class="fas fa-spinner fa-spin"></i> Carregando produtos...
+        </div>
+
+        <div id="empty-state" class="empty-state" style="display: none;">
+            <i class="fas fa-box-open"></i>
+            <h3>Nenhum produto cadastrado</h3>
+            <p>Clique em "Novo Produto" para começar</p>
+        </div>
+    </div>
+
+    <!-- Modal para Adicionar/Editar Produto -->
+    <div id="product-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Adicionar Produto</h2>
+                <button class="btn btn-sm" onclick="closeProductModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="product-form">
+                    <input type="hidden" id="product-id">
+                    
+                    <div class="form-group">
+                        <label for="product-name">Nome do Produto</label>
+                        <input type="text" id="product-name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="product-price">Preço (R$)</label>
+                        <input type="number" id="product-price" step="0.01" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="product-category">Categoria</label>
+                        <select id="product-category" required>
+                            <option value="">Selecione uma categoria</option>
+                            <option value="1">Maquiagem</option>
+                            <option value="2">Skincare</option>
+                            <option value="3">Cabelos</option>
+                            <option value="4">Perfumes</option>
+                            <option value="5">Corpo e Banho</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="product-stock">Estoque</label>
+                        <input type="number" id="product-stock" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="product-image">URL da Imagem</label>
+                        <input type="url" id="product-image" placeholder="https://...">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="product-status">Status</label>
+                        <select id="product-status" required>
+                            <option value="active">Ativo</option>
+                            <option value="inactive">Inativo</option>
+                        </select>
+                    </div>
+
+                    <div class="admin-actions">
+                        <button type="button" class="btn btn-danger" onclick="closeProductModal()">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar Produto</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        document.getElementById('admin-login-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
+        // Configuração do Supabase
+        const supabaseUrl = 'https://djpfhgbxspibucvacxpt.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqcGZoZ2J4c3BpYnVjdmFjeHB0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDg3NzMwNCwiZXhwIjoyMDc2NDUzMzA0fQ.dziOb3cIrlGiiM0PuJABuFioOf9BgnMcABQpM27N3qc';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        let products = [];
+        let editingProductId = null;
+
+        // Verificar autenticação
+        function checkAuth() {
+            const token = localStorage.getItem('adminToken');
+            const user = localStorage.getItem('adminUser');
             
-            const username = document.getElementById('admin-username').value;
-            const password = document.getElementById('admin-password').value;
-            const message = document.getElementById('login-message');
+            if (!token || !user) {
+                window.location.href = 'admin.html';
+                return;
+            }
+            
+            document.getElementById('admin-user').textContent = `Usuário: ${JSON.parse(user).username}`;
+        }
+
+        // Carregar produtos quando a página carregar
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            loadProducts();
+            setupEventListeners();
+        });
+
+        // Configurar event listeners
+        function setupEventListeners() {
+            const form = document.getElementById('product-form');
+            if (form) {
+                form.addEventListener('submit', handleProductSubmit);
+            }
+        }
+
+        // Carregar produtos do Supabase
+        async function loadProducts() {
+            showLoading(true);
             
             try {
-                const response = await fetch('/api/admin/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ username, password })
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    localStorage.setItem('adminToken', data.token);
-                    localStorage.setItem('adminUser', JSON.stringify(data.user));
-                    window.location.href = 'admin-panel.html';
-                } else {
-                    message.textContent = data.error;
-                    message.style.display = 'block';
+                const { data: productsData, error } = await supabase
+                    .from('products')
+                    .select(`
+                        *,
+                        categories (name)
+                    `)
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('Erro ao carregar produtos:', error);
+                    alert('Erro ao carregar produtos: ' + error.message);
+                    return;
                 }
+
+                products = productsData || [];
+                renderProducts();
+                
             } catch (error) {
-                message.textContent = 'Erro de conexão. Tente novamente.';
-                message.style.display = 'block';
+                console.error('Erro:', error);
+                alert('Erro ao carregar produtos');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Renderizar produtos na tabela
+        function renderProducts() {
+            const tableBody = document.getElementById('products-table-body');
+            
+            if (products.length === 0) {
+                document.getElementById('empty-state').style.display = 'block';
+                tableBody.innerHTML = '';
+                return;
+            }
+
+            document.getElementById('empty-state').style.display = 'none';
+
+            tableBody.innerHTML = products.map(product => `
+                <tr>
+                    <td>
+                        <img src="${product.image || 'https://via.placeholder.com/50x50?text=Produto'}" 
+                             alt="${product.name}" 
+                             class="product-image"
+                             onerror="this.src='https://via.placeholder.com/50x50?text=Produto'">
+                    </td>
+                    <td>${product.name}</td>
+                    <td>R$ ${parseFloat(product.price).toFixed(2)}</td>
+                    <td>${product.categories?.name || 'N/A'}</td>
+                    <td>${product.stock}</td>
+                    <td>
+                        <span class="status-badge ${product.status === 'active' ? 'active' : 'inactive'}">
+                            ${product.status === 'active' ? 'Ativo' : 'Inativo'}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-warning btn-sm" onclick="editProduct(${product.id})">
+                                <i class="fas fa-edit"></i> Editar
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteProduct(${product.id})">
+                                <i class="fas fa-trash"></i> Excluir
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Mostrar/ocultar loading
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        // Abrir modal de produto
+        function openProductModal() {
+            editingProductId = null;
+            document.getElementById('modal-title').textContent = 'Adicionar Produto';
+            document.getElementById('product-form').reset();
+            document.getElementById('product-modal').style.display = 'flex';
+        }
+
+        // Fechar modal de produto
+        function closeProductModal() {
+            document.getElementById('product-modal').style.display = 'none';
+        }
+
+        // Editar produto
+        function editProduct(id) {
+            const product = products.find(p => p.id === id);
+            if (!product) return;
+
+            editingProductId = id;
+            document.getElementById('modal-title').textContent = 'Editar Produto';
+            document.getElementById('product-id').value = product.id;
+            document.getElementById('product-name').value = product.name;
+            document.getElementById('product-price').value = product.price;
+            document.getElementById('product-category').value = product.category_id;
+            document.getElementById('product-stock').value = product.stock;
+            document.getElementById('product-image').value = product.image || '';
+            document.getElementById('product-status').value = product.status;
+            
+            document.getElementById('product-modal').style.display = 'flex';
+        }
+
+        // Excluir produto
+        async function deleteProduct(id) {
+            if (!confirm('Tem certeza que deseja excluir este produto?')) {
+                return;
+            }
+
+            try {
+                const { error } = await supabase
+                    .from('products')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) {
+                    throw error;
+                }
+
+                alert('Produto excluído com sucesso!');
+                loadProducts();
+            } catch (error) {
+                console.error('Erro ao excluir produto:', error);
+                alert('Erro ao excluir produto: ' + error.message);
+            }
+        }
+
+        // Manipular envio do formulário de produto
+        async function handleProductSubmit(e) {
+            e.preventDefault();
+
+            const productData = {
+                name: document.getElementById('product-name').value,
+                price: parseFloat(document.getElementById('product-price').value),
+                category_id: document.getElementById('product-category').value,
+                stock: parseInt(document.getElementById('product-stock').value),
+                image: document.getElementById('product-image').value,
+                status: document.getElementById('product-status').value
+            };
+
+            try {
+                if (editingProductId) {
+                    // Atualizar produto existente
+                    const { error } = await supabase
+                        .from('products')
+                        .update(productData)
+                        .eq('id', editingProductId);
+
+                    if (error) throw error;
+                    alert('Produto atualizado com sucesso!');
+                } else {
+                    // Criar novo produto
+                    const { error } = await supabase
+                        .from('products')
+                        .insert([productData]);
+
+                    if (error) throw error;
+                    alert('Produto criado com sucesso!');
+                }
+
+                closeProductModal();
+                loadProducts();
+            } catch (error) {
+                console.error('Erro ao salvar produto:', error);
+                alert('Erro ao salvar produto: ' + error.message);
+            }
+        }
+
+        // Atualizar produtos
+        function refreshProducts() {
+            loadProducts();
+        }
+
+        // Logout
+        function logout() {
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('adminUser');
+            window.location.href = 'admin.html';
+        }
+
+        // Fechar modal ao clicar fora
+        window.addEventListener('click', function(e) {
+            const modal = document.getElementById('product-modal');
+            if (e.target === modal) {
+                closeProductModal();
             }
         });
     </script>
