@@ -3,210 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Administrativo - Casa da Beleza</title>
+    <title>Login Admin - Casa da Beleza</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f5f5f5;
+        .admin-login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            padding: 2rem;
         }
-
-        h1 {
-            color: #333;
-        }
-
-        p {
-            color: #666;
-        }
-
-        hr {
-            margin: 20px 0;
-            border: 1px solid #ddd;
-        }
-
-        .controls {
-            margin: 20px 0;
-        }
-
-        /* Estilos da tabela para desktop */
-        .table-container {
-            width: 100%;
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
+        
+        .admin-login-box {
             background: white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 3rem;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
         }
-
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
+        
+        .admin-login-box h1 {
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
         }
-
-        th {
-            background-color: #f8f9fa;
-            font-weight: bold;
+        
+        .admin-login-box p {
+            color: var(--text-light);
+            margin-bottom: 2rem;
         }
-
-        /* Estilos responsivos para mobile */
-        @media screen and (max-width: 768px) {
-            .table-container {
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-            }
-            
-            table {
-                min-width: 600px; /* Força scroll horizontal em telas pequenas */
-            }
-            
-            th, td {
-                padding: 8px 6px;
-                font-size: 14px;
-            }
-            
-            /* Melhora a visualização das ações */
-            .actions {
-                white-space: nowrap;
-            }
-            
-            .actions button {
-                padding: 6px 8px;
-                font-size: 12px;
-            }
-            
-            body {
-                margin: 10px;
-            }
-        }
-
-        @media screen and (max-width: 480px) {
-            th, td {
-                padding: 6px 4px;
-                font-size: 12px;
-            }
-            
-            table {
-                min-width: 700px; /* Aumenta um pouco para caber todas as colunas */
-            }
-        }
-
-        /* Estilos dos botões */
-        button {
-            padding: 8px 12px;
-            margin: 5px;
-            border: 1px solid #ddd;
-            background: white;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-
-        button:hover {
-            background: #f0f0f0;
-        }
-
-        .edit-btn {
-            color: #007bff;
-            border-color: #007bff;
-        }
-
-        .delete-btn {
-            color: #dc3545;
-            border-color: #dc3545;
+        
+        .admin-logo {
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
         }
     </style>
 </head>
 <body>
-    <h1>Painel Administrativo - Casa da Beleza</h1>
-    <p>Gerencie seus produtos e estoque</p>
+    <div class="admin-login-container">
+        <div class="admin-login-box">
+            <div class="admin-logo">
+                 <img src="imagem/ChatGPT Image 9 de out. de 2025, 16_11_16.png"  width="100" height="80">
 
-    <hr>
-
-    <div class="controls">
-        <button>+ Novo Produto</button>
-        <button>Atualizar Lista</button>
-        <button>Voltar para Loja</button>
+                
+            </div>
+            <h1><i class="fas fa-lock"></i> Área Administrativa</h1>
+            <p>Acesso restrito à equipe autorizada</p>
+            
+            <form id="admin-login-form">
+                <div class="form-group">
+                    <label for="admin-username">Usuário</label>
+                    <input type="text" id="admin-username" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="admin-password">Senha</label>
+                    <input type="password" id="admin-password" required>
+                </div>
+                
+                <button type="submit" class="login-btn" style="width: 100%; margin: 1rem 0;">
+                    <i class="fas fa-sign-in-alt"></i> Entrar no Painel
+                </button>
+                
+                <div id="login-message" style="color: #dc3545; margin-top: 1rem; display: none;">
+                    <i class="fas fa-exclamation-triangle"></i> Credenciais inválidas!
+                </div>
+            </form>
+            
+            <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #eee;">
+                <a href="index.html" style="color: var(--text-light); text-decoration: none;">
+                    <i class="fas fa-arrow-left"></i> Voltar para a Loja
+                </a>
+            </div>
+        </div>
     </div>
 
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>Imagem</th>
-                    <th>Nome</th>
-                    <th>Preço</th>
-                    <th>Categoria</th>
-                    <th>Estoque</th>
-                    <th>Status</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>[ ]</td>
-                    <td>Protetor Solar FPS 50</td>
-                    <td>R$ 59,90</td>
-                    <td>Skincare</td>
-                    <td>35</td>
-                    <td>Ativo</td>
-                    <td class="actions">
-                        <button class="edit-btn">Editar</button>
-                        <button class="delete-btn">Excluir</button>
-                    </td>
-                </tr>
-                <tr>
-                    <td>[ ]</td>
-                    <td>Perfume Floral Suave</td>
-                    <td>R$ 89,90</td>
-                    <td>Perfumes</td>
-                    <td>20</td>
-                    <td>Ativo</td>
-                    <td class="actions">
-                        <button class="edit-btn">Editar</button>
-                        <button class="delete-btn">Excluir</button>
-                    </td>
-                </tr>
-                <tr>
-                    <td>[ ]</td>
-                    <td>Colônia Masculina</td>
-                    <td>R$ 99,90</td>
-                    <td>Perfumes</td>
-                    <td>15</td>
-                    <td>Ativo</td>
-                    <td class="actions">
-                        <button class="edit-btn">Editar</button>
-                        <button class="delete-btn">Excluir</button>
-                    </td>
-                </tr>
-                <tr>
-                    <td>[ ]</td>
-                    <td>Creme Facial Hidratante</td>
-                    <td>R$ 89,90</td>
-                    <td>Maquiagem</td>
-                    <td>40</td>
-                    <td>Ativo</td>
-                    <td class="actions">
-                        <button class="edit-btn">Editar</button>
-                        <button class="delete-btn">Excluir</button>
-                    </td>
-                </tr>
-                <tr>
-                    <td>[ ]</td>
-                    <td>Creme Corporal Hidratante</td>
-                    <td>R$ 34,90</td>
-                    <td>Maquiagem</td>
-                    <td>60</td>
-                    <td>Ativo</td>
-                    <td class="actions">
-                        <button class="edit-btn">Editar</button>
-                        <button class="delete-btn">Excluir</button>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+    <script>
+        document.getElementById('admin-login-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('admin-username').value;
+            const password = document.getElementById('admin-password').value;
+            const message = document.getElementById('login-message');
+            
+            try {
+                const response = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    localStorage.setItem('adminToken', data.token);
+                    localStorage.setItem('adminUser', JSON.stringify(data.user));
+                    window.location.href = 'admin-panel.html';
+                } else {
+                    message.textContent = data.error;
+                    message.style.display = 'block';
+                }
+            } catch (error) {
+                message.textContent = 'Erro de conexão. Tente novamente.';
+                message.style.display = 'block';
+            }
+        });
+    </script>
 </body>
 </html>
