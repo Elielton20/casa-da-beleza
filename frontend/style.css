@@ -12,6 +12,33 @@
     --transition: all 0.3s ease;
 }
 
+/* ========== SCROLL HORIZONTAL ========== */
+.scroll-horizontal {
+    width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.scroll-horizontal::-webkit-scrollbar {
+    display: none;
+}
+
+.scroll-horizontal table {
+    min-width: 600px; /* Força a rolagem horizontal */
+    width: 100%;
+}
+
+/* ========== HEADER CORRIGIDO ========== */
+header {
+    background: var(--white);
+    box-shadow: var(--shadow);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
 /* ========== HEADER CORRIGIDO ========== */
 header {
     background: var(--white);
@@ -248,57 +275,31 @@ header {
 
 /* ===== AJUSTES EXTRA PARA CELULARES PEQUENOS ===== */
 @media (max-width: 480px) {
-    .banner {
-        padding: 1.5rem 0;
+    /* ... seu código existente ... */
+    
+    /* SCROLL HORIZONTAL MELHORADO PARA MOBILE */
+    .scroll-horizontal {
+        width: 100%;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--white);
     }
-
-
-    .banner h1 {
-        font-size: 1.3rem;
+    
+    .scroll-horizontal::-webkit-scrollbar {
+        display: none;
     }
-
-    .banner p {
-        font-size: 0.85rem;
+    
+    .scroll-horizontal table {
+        min-width: 600px;
+        width: 100%;
+        margin: 0;
     }
-
-    .product-card img {
-        height: 150px;
-    }
-
-    .product-title {
-        font-size: 0.9rem;
-    }
-
-    .product-price {
-        font-size: 1rem;
-    }
-
-    .category-btn {
-        min-width: 60px;
-        font-size: 0.7rem;
-    }
-
-    .category-icon {
-        width: 32px;
-        height: 32px;
-        font-size: 1rem;
-    }
-}
-
-/* ========== RESTANTE DO CSS PERMANECE IGUAL ========== */
-* {
-    margin: 0;
-    padding: 0;
-    border-radius: 8px;
-    box-sizing: border-box;
-}
-
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    line-height: 1.6;
-    color: var(--text-dark);
-    background-color: var(--background-light);
-    overflow-x: hidden; /* Impede scroll horizontal */
+    
+    /* ... resto do seu código ... */
 }
 
 /* ... (o resto do seu CSS permanece igual abaixo) ... */
@@ -764,7 +765,7 @@ nav a:hover::after {
     font-weight: 600;
     margin-bottom: 0.5rem;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp:2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
