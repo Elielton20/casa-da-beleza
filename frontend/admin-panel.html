@@ -79,33 +79,47 @@
         </div>
 
         <!-- Lista de Produtos -->
-        <div class="products-management">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h2>Gerenciar Produtos</h2>
-                <div class="search-box" style="max-width: 300px;">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="admin-search" placeholder="Buscar produtos...">
-                </div>
-            </div>
-            
-            <table class="products-table">
-                <thead>
-                    <tr>
-                        <th>Imagem</th>
-                        <th>Nome</th>
-                        <th>Preço</th>
-                        <th>Categoria</th>
-                        <th>Estoque</th>
-                        <th>Status</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="admin-products-list">
-                    <!-- Produtos serão carregados via JavaScript -->
-                </tbody>
-            </table>
-        </div>
+          <!-- Lista de Produtos -->
+<div class="products-management">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+    <h2>Gerenciar Produtos</h2>
+
+    <div class="search-box" style="max-width: 300px;">
+      <i class="fas fa-search"></i>
+      <input type="text" id="admin-search" placeholder="Buscar produtos...">
     </div>
+  </div>
+
+  <!-- 🔥 Tabela com rolagem lateral -->
+  <div class="tabela-container">
+    <table class="products-table">
+      <thead>
+        <tr>
+          <th>Imagem</th>
+          <th>Nome</th>
+          <th>Preço</th>
+          <th>Categoria</th>
+          <th>Estoque</th>
+          <th>Status</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="admin-products-list">
+        <tr>
+          <td><img src="imagem/teste.jpg" width="50"></td>
+          <td>Produto de Exemplo</td>
+          <td>R$ 39,90</td>
+          <td>Maquiagem</td>
+          <td>10</td>
+          <td>Ativo</td>
+          <td><button>Editar</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+             
 
     <!-- Modal Adicionar/Editar Produto -->
     <div class="modal product-form-modal" id="product-modal">
