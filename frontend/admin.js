@@ -22,6 +22,9 @@ function getAuthHeaders() {
     };
 }
 
+// Variável global para armazenar a imagem atual
+let currentImageFile = null;
+
 // Gerenciamento de Produtos
 class ProductManager {
     constructor() {
@@ -43,42 +46,85 @@ class ProductManager {
         await this.loadProducts();
         await this.loadStats();
         this.setupEventListeners();
+        this.initializeImageUpload(); // 🔥 INICIALIZAR UPLOAD DE IMAGENS
     }
 
     async loadProducts() {
         try {
+            // Primeiro tenta carregar do localStorage (fallback)
+            const localProducts = JSON.parse(localStorage.getItem('adminProducts'));
+            if (localProducts && localProducts.length > 0) {
+                this.products = localProducts;
+                this.renderProducts();
+                return;
+            }
+
+            // Se não tem no localStorage, tenta API
             const response = await fetch('/api/admin/products', {
                 headers: getAuthHeaders()
             });
             
-            if (!response.ok) throw new Error('Erro ao carregar produtos');
+            if (response.ok) {
+                this.products = await response.json();
+            } else {
+                // Fallback para dados de exemplo
+                this.products = [
+                    {
+                        id: 1,
+                        name: "Base Líquida Professional",
+                        price: 89.90,
+                        category: "Maquiagem",
+                        category_id: 1,
+                        image: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=500",
+                        stock: 15,
+                        status: "active",
+                        description: "Base líquida de alta cobertura"
+                    }
+                ];
+            }
             
-            this.products = await response.json();
             this.renderProducts();
         } catch (error) {
-            console.error('Erro:', error);
-            alert('Erro ao carregar produtos');
+            console.error('Erro ao carregar produtos:', error);
+            // Fallback para dados locais
+            this.products = JSON.parse(localStorage.getItem('adminProducts')) || [];
+            this.renderProducts();
         }
     }
 
     async loadStats() {
         try {
-            const response = await fetch('/api/admin/stats', {
-                headers: getAuthHeaders()
+            const totalProducts = this.products.length;
+            const totalValue = this.products.reduce((sum, product) => sum + (product.price * (product.stock || 0)), 0);
+            const totalCategories = this.categories.length;
+
+            this.updateStats({
+                totalProducts,
+                totalValue,
+                totalCategories
             });
-            
-            if (!response.ok) throw new Error('Erro ao carregar estatísticas');
-            
-            const stats = await response.json();
-            this.updateStats(stats);
         } catch (error) {
-            console.error('Erro:', error);
+            console.error('Erro ao carregar estatísticas:', error);
         }
     }
 
     renderProducts() {
         const tbody = document.getElementById('admin-products-list');
+        if (!tbody) return;
+        
         tbody.innerHTML = '';
+
+        if (this.products.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 2rem; color: #666;">
+                        <i class="fas fa-box-open" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
+                        Nenhum produto cadastrado
+                    </td>
+                </tr>
+            `;
+            return;
+        }
 
         this.products.forEach(product => {
             const row = document.createElement('tr');
@@ -89,8 +135,8 @@ class ProductManager {
                 </td>
                 <td>${product.name}</td>
                 <td>R$ ${parseFloat(product.price).toFixed(2)}</td>
-                <td>${product.category_name}</td>
-                <td>${product.stock}</td>
+                <td>${product.category || 'Sem categoria'}</td>
+                <td>${product.stock || 0}</td>
                 <td>
                     <span class="status-badge ${product.status === 'active' ? 'active' : 'inactive'}">
                         ${product.status === 'active' ? 'Ativo' : 'Inativo'}
@@ -109,6 +155,120 @@ class ProductManager {
         });
     }
 
+    // 🔥 SISTEMA DE UPLOAD DE IMAGENS PARA IPHONE
+    initializeImageUpload() {
+        const fileInput = document.getElementById('product-image');
+        const uploadContainer = document.getElementById('upload-container');
+        const imagePreview = document.getElementById('image-preview');
+        const fileInfo = document.getElementById('file-info');
+        
+        if (!fileInput || !uploadContainer) {
+            console.log('Elementos de upload não encontrados');
+            return;
+        }
+        
+        // Clique na área de upload
+        uploadContainer.addEventListener('click', function(e) {
+            if (e.target !== fileInput) {
+                fileInput.click();
+            }
+        });
+        
+        // Drag and drop
+        uploadContainer.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadContainer.style.background = '#e8eaff';
+            uploadContainer.style.borderColor = '#8a2be2';
+        });
+        
+        uploadContainer.addEventListener('dragleave', function() {
+            uploadContainer.style.background = '#f8f9ff';
+            uploadContainer.style.borderColor = '#8a2be2';
+        });
+        
+        uploadContainer.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadContainer.style.background = '#f8f9ff';
+            uploadContainer.style.borderColor = '#8a2be2';
+            
+            if (e.dataTransfer.files.length) {
+                this.handleImageUpload(e.dataTransfer.files[0]);
+            }
+        }.bind(this));
+        
+        // Mudança no input de arquivo
+        fileInput.addEventListener('change', function(e) {
+            if (e.target.files.length) {
+                this.handleImageUpload(e.target.files[0]);
+            }
+        }.bind(this));
+    }
+
+    handleImageUpload(file) {
+        const fileInfo = document.getElementById('file-info');
+        const imagePreview = document.getElementById('image-preview');
+        
+        // Verificar se é imagem
+        if (!file.type.startsWith('image/')) {
+            alert('Por favor, selecione uma imagem válida.');
+            return;
+        }
+        
+        // Verificar tamanho (aumente o limite para 20MB)
+        if (file.size > 20 * 1024 * 1024) {
+            alert('Imagem muito grande. Máximo: 20MB');
+            return;
+        }
+        
+        // Atualizar informações do arquivo
+        if (fileInfo) {
+            fileInfo.textContent = `${file.name} (${this.formatFileSize(file.size)})`;
+        }
+        
+        // Armazenar arquivo
+        currentImageFile = file;
+        
+        // Criar preview
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            // Limpar preview anterior
+            if (imagePreview) {
+                imagePreview.innerHTML = '';
+                
+                // Criar nova imagem
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.alt = 'Preview do produto';
+                
+                // Manter a qualidade original - sem compressão
+                img.style.maxWidth = '100%';
+                img.style.maxHeight = '300px';
+                img.style.objectFit = 'contain';
+                img.style.borderRadius = '8px';
+                
+                imagePreview.appendChild(img);
+                
+                // Mostrar informações da imagem
+                const info = document.createElement('div');
+                info.style.marginTop = '0.5rem';
+                info.style.color = '#666';
+                info.style.fontSize = '0.8rem';
+                info.innerHTML = `<i class="fas fa-info-circle"></i> Imagem carregada em alta qualidade`;
+                imagePreview.appendChild(info);
+            }
+        };
+        
+        reader.readAsDataURL(file);
+    }
+
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
     setupEventListeners() {
         // Botão Adicionar Produto
         document.getElementById('add-product-btn').addEventListener('click', () => {
@@ -121,20 +281,18 @@ class ProductManager {
             this.saveProduct();
         });
 
-        // Preview de Imagem
-        document.getElementById('product-image').addEventListener('change', (e) => {
-            this.previewImage(e.target.files[0]);
-        });
-
         // Botão Cancelar
         document.querySelector('.btn-cancel').addEventListener('click', () => {
             this.closeProductModal();
         });
 
         // Busca
-        document.getElementById('admin-search').addEventListener('input', (e) => {
-            this.searchProducts(e.target.value);
-        });
+        const searchInput = document.getElementById('admin-search');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                this.searchProducts(e.target.value);
+            });
+        }
 
         // Logout
         document.getElementById('logout-btn').addEventListener('click', (e) => {
@@ -179,13 +337,6 @@ class ProductManager {
         const modal = document.getElementById('product-modal');
         const title = document.getElementById('product-modal-title');
         
-        // Preencher select de categorias
-        const categorySelect = document.getElementById('product-category');
-        categorySelect.innerHTML = '<option value="">Selecione...</option>';
-        this.categories.forEach(category => {
-            categorySelect.innerHTML += `<option value="${category.id}">${category.name}</option>`;
-        });
-        
         if (product) {
             title.textContent = 'Editar Produto';
             this.fillProductForm(product);
@@ -198,7 +349,10 @@ class ProductManager {
     }
 
     closeProductModal() {
-        document.getElementById('product-modal').style.display = 'none';
+        const modal = document.getElementById('product-modal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
         this.clearProductForm();
     }
 
@@ -206,101 +360,127 @@ class ProductManager {
         this.currentProductId = product.id;
         document.getElementById('product-name').value = product.name;
         document.getElementById('product-price').value = product.price;
-        document.getElementById('product-category').value = product.category_id;
-        document.getElementById('product-stock').value = product.stock;
+        document.getElementById('product-category').value = product.category;
+        document.getElementById('product-stock').value = product.stock || 0;
         document.getElementById('product-status').value = product.status;
         document.getElementById('product-description').value = product.description || '';
         
         // Preview da imagem existente
         const preview = document.getElementById('image-preview');
-        preview.innerHTML = `<img src="${product.image}" alt="Preview">`;
+        if (preview && product.image) {
+            preview.innerHTML = `<img src="${product.image}" alt="Preview" style="max-width: 100%; max-height: 300px; object-fit: contain; border-radius: 8px;">`;
+        }
+
+        // Limpar arquivo atual
+        currentImageFile = null;
+        const fileInfo = document.getElementById('file-info');
+        if (fileInfo) {
+            fileInfo.textContent = 'Imagem do produto atual';
+        }
     }
 
     clearProductForm() {
         this.currentProductId = null;
-        document.getElementById('product-form').reset();
-        document.getElementById('image-preview').innerHTML = '<i class="fas fa-image" style="color: #ccc;"></i>';
-    }
-
-    previewImage(file) {
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const preview = document.getElementById('image-preview');
-                preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
-            };
-            reader.readAsDataURL(file);
+        const form = document.getElementById('product-form');
+        if (form) {
+            form.reset();
         }
+        
+        const imagePreview = document.getElementById('image-preview');
+        if (imagePreview) {
+            imagePreview.innerHTML = '<i class="fas fa-image"></i><span>Prévia aparecerá aqui</span>';
+        }
+        
+        const fileInfo = document.getElementById('file-info');
+        if (fileInfo) {
+            fileInfo.textContent = 'Nenhum arquivo escolhido';
+        }
+        
+        currentImageFile = null;
     }
 
     async saveProduct() {
         const formData = {
             name: document.getElementById('product-name').value,
             price: parseFloat(document.getElementById('product-price').value),
-            category_id: parseInt(document.getElementById('product-category').value),
-            stock: parseInt(document.getElementById('product-stock').value),
+            category: document.getElementById('product-category').value,
+            stock: parseInt(document.getElementById('product-stock').value) || 0,
             status: document.getElementById('product-status').value,
             description: document.getElementById('product-description').value
         };
 
         // Validar dados
-        if (!formData.name || !formData.price || !formData.category_id) {
+        if (!formData.name || !formData.price || !formData.category) {
             alert('Por favor, preencha todos os campos obrigatórios!');
             return;
         }
 
-        // Simular upload de imagem (em produção, você enviaria para o servidor)
-        const imageFile = document.getElementById('product-image').files[0];
-        if (imageFile) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                formData.image = e.target.result;
-                this.finalizeSave(formData);
-            };
-            reader.readAsDataURL(imageFile);
-        } else {
-            // Manter imagem existente se estiver editando
-            if (this.currentProductId) {
+        try {
+            // Processar imagem se existir
+            if (currentImageFile) {
+                const imageBase64 = await this.processImage(currentImageFile);
+                formData.image = imageBase64;
+            } else if (this.currentProductId) {
+                // Manter imagem existente se estiver editando
                 const existingProduct = this.products.find(p => p.id === this.currentProductId);
                 formData.image = existingProduct.image;
             } else {
                 formData.image = 'https://via.placeholder.com/300x300?text=Produto+Sem+Imagem';
             }
-            this.finalizeSave(formData);
+
+            await this.finalizeSave(formData);
+            
+        } catch (error) {
+            console.error('Erro ao salvar produto:', error);
+            alert('Erro ao salvar produto. Tente novamente.');
         }
+    }
+
+    processImage(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                resolve(e.target.result);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
     }
 
     async finalizeSave(formData) {
         try {
-            let response;
-            
             if (this.currentProductId) {
                 // Editar produto existente
-                response = await fetch(`/api/admin/products/${this.currentProductId}`, {
-                    method: 'PUT',
-                    headers: getAuthHeaders(),
-                    body: JSON.stringify(formData)
-                });
+                const index = this.products.findIndex(p => p.id === this.currentProductId);
+                if (index !== -1) {
+                    this.products[index] = {
+                        ...this.products[index],
+                        ...formData,
+                        id: this.currentProductId
+                    };
+                }
             } else {
                 // Adicionar novo produto
-                response = await fetch('/api/admin/products', {
-                    method: 'POST',
-                    headers: getAuthHeaders(),
-                    body: JSON.stringify(formData)
-                });
+                const newProduct = {
+                    ...formData,
+                    id: Date.now(),
+                    createdAt: new Date().toISOString()
+                };
+                this.products.push(newProduct);
             }
 
-            if (!response.ok) {
-                throw new Error('Erro ao salvar produto');
-            }
-
+            // Salvar no localStorage
+            localStorage.setItem('adminProducts', JSON.stringify(this.products));
+            
+            // Recarregar dados
             await this.loadProducts();
             await this.loadStats();
-            this.closeProductModal();
             
-            alert('Produto salvo com sucesso!');
+            this.closeProductModal();
+            this.showNotification('Produto salvo com sucesso!');
+            
         } catch (error) {
-            console.error('Erro:', error);
+            console.error('Erro ao salvar produto:', error);
             alert('Erro ao salvar produto');
         }
     }
@@ -335,18 +515,12 @@ class ProductManager {
 
     async deleteProduct(id) {
         try {
-            const response = await fetch(`/api/admin/products/${id}`, {
-                method: 'DELETE',
-                headers: getAuthHeaders()
-            });
-
-            if (!response.ok) {
-                throw new Error('Erro ao excluir produto');
-            }
-
+            this.products = this.products.filter(p => p.id !== id);
+            localStorage.setItem('adminProducts', JSON.stringify(this.products));
+            
             await this.loadProducts();
             await this.loadStats();
-            alert('Produto excluído com sucesso!');
+            this.showNotification('Produto excluído com sucesso!');
         } catch (error) {
             console.error('Erro:', error);
             alert('Erro ao excluir produto');
@@ -356,11 +530,25 @@ class ProductManager {
     searchProducts(query) {
         const filteredProducts = this.products.filter(product => 
             product.name.toLowerCase().includes(query.toLowerCase()) ||
-            product.category_name.toLowerCase().includes(query.toLowerCase())
+            (product.category && product.category.toLowerCase().includes(query.toLowerCase()))
         );
         
         const tbody = document.getElementById('admin-products-list');
+        if (!tbody) return;
+        
         tbody.innerHTML = '';
+
+        if (filteredProducts.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 2rem; color: #666;">
+                        <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
+                        Nenhum produto encontrado
+                    </td>
+                </tr>
+            `;
+            return;
+        }
 
         filteredProducts.forEach(product => {
             const row = document.createElement('tr');
@@ -371,8 +559,8 @@ class ProductManager {
                 </td>
                 <td>${product.name}</td>
                 <td>R$ ${parseFloat(product.price).toFixed(2)}</td>
-                <td>${product.category_name}</td>
-                <td>${product.stock}</td>
+                <td>${product.category || 'Sem categoria'}</td>
+                <td>${product.stock || 0}</td>
                 <td>
                     <span class="status-badge ${product.status === 'active' ? 'active' : 'inactive'}">
                         ${product.status === 'active' ? 'Ativo' : 'Inativo'}
@@ -392,184 +580,51 @@ class ProductManager {
     }
 
     updateStats(stats) {
-        document.getElementById('total-products').textContent = stats.totalProducts;
-        document.getElementById('total-value').textContent = `R$ ${stats.totalValue.toFixed(2)}`;
-        document.getElementById('total-categories').textContent = stats.totalCategories;
+        const totalProductsEl = document.getElementById('total-products');
+        const totalValueEl = document.getElementById('total-value');
+        const totalCategoriesEl = document.getElementById('total-categories');
+        
+        if (totalProductsEl) totalProductsEl.textContent = stats.totalProducts;
+        if (totalValueEl) totalValueEl.textContent = `R$ ${stats.totalValue.toFixed(2)}`;
+        if (totalCategoriesEl) totalCategoriesEl.textContent = stats.totalCategories;
+    }
+
+    showNotification(message) {
+        // Criar elemento de notificação
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #8a2be2;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 5px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        `;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        // Animação de entrada
+        setTimeout(() => {
+            notification.style.transform = 'translateX(0)';
+        }, 100);
+        
+        // Remover após 3 segundos
+        setTimeout(() => {
+            notification.style.transform = 'translateX(400px)';
+            setTimeout(() => {
+                if (document.body.contains(notification)) {
+                    document.body.removeChild(notification);
+                }
+            }, 300);
+        }, 3000);
     }
 }
 
-// Sistema de Upload de Imagens para iPhone
-document.addEventListener('DOMContentLoaded', function() {
-    const fileInput = document.getElementById('product-image');
-    const uploadContainer = document.getElementById('upload-container');
-    const imagePreview = document.getElementById('image-preview');
-    const fileInfo = document.getElementById('file-info');
-    
-    if (!fileInput || !uploadContainer) return;
-    
-    // Clique na área de upload
-    uploadContainer.addEventListener('click', function(e) {
-        if (e.target !== fileInput) {
-            fileInput.click();
-        }
-    });
-    
-    // Drag and drop
-    uploadContainer.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        uploadContainer.style.background = '#e8eaff';
-        uploadContainer.style.borderColor = '#8a2be2';
-    });
-    
-    uploadContainer.addEventListener('dragleave', function() {
-        uploadContainer.style.background = '#f8f9ff';
-        uploadContainer.style.borderColor = '#8a2be2';
-    });
-    
-    uploadContainer.addEventListener('drop', function(e) {
-        e.preventDefault();
-        uploadContainer.style.background = '#f8f9ff';
-        uploadContainer.style.borderColor = '#8a2be2';
-        
-        if (e.dataTransfer.files.length) {
-            handleImageUpload(e.dataTransfer.files[0]);
-        }
-    });
-    
-    // Mudança no input de arquivo
-    fileInput.addEventListener('change', function(e) {
-        if (e.target.files.length) {
-            handleImageUpload(e.target.files[0]);
-        }
-    });
-    
-    function handleImageUpload(file) {
-        // Verificar se é imagem
-        if (!file.type.startsWith('image/')) {
-            alert('Por favor, selecione uma imagem válida.');
-            return;
-        }
-        
-        // Verificar tamanho (aumente o limite para 20MB)
-        if (file.size > 20 * 1024 * 1024) {
-            alert('Imagem muito grande. Máximo: 20MB');
-            return;
-        }
-        
-        // Atualizar informações do arquivo
-        fileInfo.textContent = `${file.name} (${formatFileSize(file.size)})`;
-        
-        // Criar preview
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            // Limpar preview anterior
-            imagePreview.innerHTML = '';
-            
-            // Criar nova imagem
-            const img = document.createElement('img');
-            img.src = e.target.result;
-            img.alt = 'Preview do produto';
-            
-            // Manter a qualidade original - sem compressão
-            img.style.imageRendering = 'high-quality';
-            
-            imagePreview.appendChild(img);
-            img.style.display = 'block';
-            
-            // Mostrar informações da imagem
-            const info = document.createElement('div');
-            info.style.marginTop = '0.5rem';
-            info.style.color = '#666';
-            info.style.fontSize = '0.8rem';
-            info.innerHTML = `<i class="fas fa-info-circle"></i> Imagem carregada em alta qualidade`;
-            imagePreview.appendChild(info);
-        };
-        
-        reader.readAsDataURL(file);
-    }
-    
-    function formatFileSize(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-});
-
-// Modificar a função de salvar produto para lidar com imagens
-function saveProductWithImage(productData, imageFile) {
-    return new Promise((resolve, reject) => {
-        if (imageFile) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                // Adiciona a imagem convertida para base64 aos dados do produto
-                productData.image = e.target.result;
-                resolve(productData);
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(imageFile);
-        } else {
-            resolve(productData);
-        }
-    });
-}
-
-// Exemplo de como usar na função de salvar produto
-async function saveProduct(formData) {
-    const imageFile = document.getElementById('product-image').files[0];
-    
-    try {
-        const productData = {
-            name: document.getElementById('product-name').value,
-            price: parseFloat(document.getElementById('product-price').value),
-            category: document.getElementById('product-category').value,
-            stock: parseInt(document.getElementById('product-stock').value),
-            status: document.getElementById('product-status').value,
-            description: document.getElementById('product-description').value
-        };
-        
-        // Processar imagem se existir
-        const productWithImage = await saveProductWithImage(productData, imageFile);
-        
-        // Salvar no localStorage ou enviar para API
-        saveProductToStorage(productWithImage);
-        
-        // Fechar modal e recarregar lista
-        closeModal('product-modal');
-        loadProductsList();
-        
-        showNotification('Produto salvo com sucesso!');
-        
-    } catch (error) {
-        console.error('Erro ao salvar produto:', error);
-        alert('Erro ao salvar produto. Tente novamente.');
-    }
-}
-
-function saveProductToStorage(product) {
-    // Recuperar produtos existentes
-    let products = JSON.parse(localStorage.getItem('adminProducts')) || [];
-    
-    // Adicionar ID se for novo produto
-    if (!product.id) {
-        product.id = Date.now();
-        product.createdAt = new Date().toISOString();
-    }
-    
-    // Atualizar se já existe, ou adicionar novo
-    const existingIndex = products.findIndex(p => p.id === product.id);
-    if (existingIndex >= 0) {
-        products[existingIndex] = product;
-    } else {
-        products.push(product);
-    }
-    
-    // Salvar no localStorage
-    localStorage.setItem('adminProducts', JSON.stringify(products));
-    
-    // Atualizar estatísticas
-    updateAdminStats();
-}
 // Inicializar o gerenciador de produtos
 const productManager = new ProductManager();

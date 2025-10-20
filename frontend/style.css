@@ -2170,3 +2170,111 @@ footer {
 .container {
   overflow-x: visible !important;
 }
+
+/* ========== UPLOAD DE IMAGEM ALTA QUALIDADE ========== */
+.upload-container {
+    border: 2px dashed #8a2be2;
+    border-radius: 10px;
+    padding: 1.5rem;
+    text-align: center;
+    background: #f8f9ff;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.upload-container:hover {
+    background: #f0f2ff;
+    border-color: #6a1bb2;
+}
+
+.upload-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.8rem 1.5rem;
+    background: linear-gradient(135deg, #8a2be2, #da70d6);
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.upload-label:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(138, 43, 226, 0.3);
+}
+
+.hidden {
+    display: none;
+}
+
+.file-info {
+    margin-top: 0.5rem;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.image-preview {
+    width: 100%;
+    min-height: 200px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #fafafa;
+    margin-top: 1rem;
+    overflow: hidden;
+    position: relative;
+}
+
+.image-preview img {
+    max-width: 100%;
+    max-height: 300px;
+    object-fit: contain;
+}
+
+.image-preview i {
+    font-size: 3rem;
+    color: #ccc;
+    margin-bottom: 0.5rem;
+}
+
+.image-preview span {
+    color: #999;
+    font-size: 0.9rem;
+}
+
+.quality-tips {
+    margin-top: 0.5rem;
+    text-align: center;
+}
+
+.quality-tips small {
+    color: #666;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+}
+
+.quality-tips i {
+    color: #ffc107;
+}
+
+/* Container para tabela com rolagem */
+.tabela-container {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: white;
+}
+
+.tabela-container table {
+    min-width: 800px;
+    width: 100%;
+}
