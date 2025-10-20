@@ -6,27 +6,18 @@
     <title>Casa da Beleza - Sua loja de cosméticos</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- MENU HAMBURGUER PARA CELULAR - ADICIONE ISSO -->
-<button class="menu-toggle" id="mobile-menu" style="display: none;">
-    <i class="fas fa-bars"></i>
-</button>
-
+    <!-- MENU HAMBURGUER PARA CELULAR - AJUSTADO -->
 <style>
 /* ESTILOS PARA O MENU HAMBURGUER */
 .menu-toggle {
     display: none;
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: white;
-    border: 2px solid #007bff;
-    border-radius: 5px;
+    background: none;
+    border: none;
     font-size: 1.5rem;
-    color: #007bff;
+    color: #333;
     cursor: pointer;
-    padding: 10px;
-    z-index: 1001;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    padding: 0.5rem;
+    margin-left: 0.5rem;
 }
 
 /* No celular, mostra o hamburguer e esconde o menu normal */
@@ -37,7 +28,7 @@
     
     /* Esconde o menu normal no mobile */
     nav {
-        display: none;
+        display: none !important;
     }
     
     /* Mostra o menu quando active */
@@ -57,6 +48,7 @@
     nav.active ul {
         flex-direction: column;
         gap: 0;
+        align-items: flex-start;
     }
     
     nav.active li,
@@ -66,6 +58,7 @@
         padding: 1rem 1.5rem;
         border-bottom: 1px solid #f0f0f0;
         text-align: left;
+        width: 100%;
     }
     
     nav.active a {
@@ -78,9 +71,11 @@
         background: #f8f9fa;
     }
     
-    /* Ajusta o header para o botão */
-    .header-container {
-        position: relative;
+    /* Ajusta o header para os botões */
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
     }
 }
 
@@ -94,56 +89,49 @@ a[href="admin.html"] {
 <script>
 // JAVASCRIPT PARA O MENU HAMBURGUER
 document.addEventListener('DOMContentLoaded', function() {
-    // Cria o botão do menu hamburguer se não existir
-    let menuToggle = document.getElementById('mobile-menu');
-    if (!menuToggle) {
-        menuToggle = document.createElement('button');
-        menuToggle.id = 'mobile-menu';
+    // Encontra o container de ações do header
+    const headerActions = document.querySelector('.header-actions');
+    
+    if (headerActions) {
+        // Cria o botão do menu hamburguer
+        const menuToggle = document.createElement('button');
         menuToggle.className = 'menu-toggle';
-        menuToggle.innerHTML = '<i class="fas fa-bars"></i>';
-        document.body.appendChild(menuToggle);
-    }
-    
-    const nav = document.querySelector('nav');
-    
-    console.log('Menu toggle:', menuToggle);
-    console.log('Nav:', nav);
-    
-    if (menuToggle && nav) {
-        menuToggle.addEventListener('click', function() {
-            const isActive = nav.classList.contains('active');
-            nav.classList.toggle('active');
-            menuToggle.innerHTML = isActive 
-                ? '<i class="fas fa-bars"></i>' 
-                : '<i class="fas fa-times"></i>';
-        });
+        menuToggle.innerHTML = '<i class="fas fa-ellipsis-v"></i>';
         
-        // Fechar menu ao clicar em um link
-        nav.addEventListener('click', function(e) {
-            if (e.target.tagName === 'A') {
-                nav.classList.remove('active');
-                menuToggle.innerHTML = '<i class="fas fa-bars"></i>';
-            }
-        });
+        // Insere o menu hamburguer antes dos botões de usuário/carrinho
+        headerActions.insertBefore(menuToggle, headerActions.firstChild);
+        
+        const nav = document.querySelector('nav');
+        
+        console.log('Menu toggle criado:', menuToggle);
+        console.log('Nav:', nav);
+        
+        if (menuToggle && nav) {
+            menuToggle.addEventListener('click', function() {
+                const isActive = nav.classList.contains('active');
+                nav.classList.toggle('active');
+                menuToggle.innerHTML = isActive 
+                    ? '<i class="fas fa-ellipsis-v"></i>' 
+                    : '<i class="fas fa-times"></i>';
+            });
+            
+            // Fechar menu ao clicar em um link
+            nav.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    nav.classList.remove('active');
+                    menuToggle.innerHTML = '<i class="fas fa-ellipsis-v"></i>';
+                }
+            });
+            
+            // Fechar menu ao clicar fora
+            document.addEventListener('click', function(e) {
+                if (!nav.contains(e.target) && !menuToggle.contains(e.target) && nav.classList.contains('active')) {
+                    nav.classList.remove('active');
+                    menuToggle.innerHTML = '<i class="fas fa-ellipsis-v"></i>';
+                }
+            });
+        }
     }
-    
-    // Botão de emergência admin - SEMPRE visível no mobile
-    const emergencyBtn = document.createElement('div');
-    emergencyBtn.innerHTML = `
-        <a href="admin.html" style="position: fixed; bottom: 20px; right: 20px; background: #dc3545; color: white; padding: 15px; border-radius: 50%; text-decoration: none; display: block; box-shadow: 0 4px 12px rgba(220,53,69,0.5); z-index: 9999;">
-            <i class="fas fa-lock"></i>
-        </a>
-    `;
-    document.body.appendChild(emergencyBtn);
-    
-    // Mostrar botão de emergência apenas no mobile
-    function checkMobile() {
-        const isMobile = window.innerWidth <= 768;
-        emergencyBtn.style.display = isMobile ? 'block' : 'none';
-    }
-    
-    window.addEventListener('load', checkMobile);
-    window.addEventListener('resize', checkMobile);
 });
 </script>
 </head>
