@@ -2136,3 +2136,37 @@ footer {
         flex-wrap: nowrap;
     }
 }
+
+/* === SCROLL HORIZONTAL NA TABELA === */
+.tabela-container {
+  width: 100%;
+  overflow-x: auto !important;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch; /* scroll suave */
+  display: block; /* força comportamento de bloco */
+}
+
+.products-table {
+  width: 100%;
+  min-width: 900px; /* força o scroll lateral */
+  border-collapse: collapse;
+}
+
+.products-table th,
+.products-table td {
+  padding: 12px 15px;
+  text-align: left;
+  white-space: nowrap; /* impede quebra de linha */
+  border-bottom: 1px solid #ddd;
+}
+
+.products-table thead {
+  background-color: #f8f8f8;
+  font-weight: bold;
+}
+
+/* Corrige possíveis interferências de container */
+.products-management,
+.container {
+  overflow-x: visible !important;
+}
