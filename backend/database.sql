@@ -81,12 +81,6 @@ INSERT IGNORE INTO categories (name, description) VALUES
 ('Corpo e Banho', 'Produtos para cuidados com o corpo');
 
 -- Admin padrão COM HASH CORRETO (MANTIDO)
-INSERT IGNORE INTO admin_users (username, password_hash, email) 
-VALUES ('admin', '$2a$10$HxrsbHkA2SgIn1r97qjsg.rTv/0NFuYbIltHGmN2narX.W182TAMS', 'evelensilva354@gmail.com');
-
--- NOVO: Usuário cliente de teste
-INSERT IGNORE INTO users (name, email, password_hash) 
-VALUES ('Cliente Teste', 'cliente@teste.com', '$2a$10$HxrsbHkA2SgIn1r97qjsg.rTv/0NFuYbIltHGmN2narX.W182TAMS');
 
 -- Produtos iniciais (MANTIDO)
 INSERT IGNORE INTO products (name, price, category_id, image, description, stock, rating, review_count) VALUES
