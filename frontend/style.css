@@ -2136,3 +2136,23 @@ footer {
         flex-wrap: nowrap;
     }
 }
+
+/* === Rolagem horizontal na tabela (mobile) === */
+.tabela-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch; /* rolagem suave no celular */
+}
+
+.tabela-produtos {
+  width: 100%;
+  min-width: 600px; /* força o scroll lateral */
+  border-collapse: collapse;
+}
+
+.tabela-produtos th,
+.tabela-produtos td {
+  padding: 10px;
+  text-align: left;
+  white-space: nowrap; /* impede quebra de linha */
+}
