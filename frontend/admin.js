@@ -13,15 +13,6 @@ if (!checkAdminAuth()) {
     // Redirecionamento já acontece na função acima
 }
 
-// Headers padrão para requisições autenticadas
-function getAuthHeaders() {
-    const token = localStorage.getItem('adminToken');
-    return {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-    };
-}
-
 // Variável global para armazenar a imagem atual
 let currentImageFile = null;
 
@@ -46,28 +37,17 @@ class ProductManager {
         await this.loadProducts();
         await this.loadStats();
         this.setupEventListeners();
-        this.initializeImageUpload(); // 🔥 INICIALIZAR UPLOAD DE IMAGENS
+        this.initializeImageUpload();
     }
 
     async loadProducts() {
         try {
-            // Primeiro tenta carregar do localStorage (fallback)
-            const localProducts = JSON.parse(localStorage.getItem('adminProducts'));
-            if (localProducts && localProducts.length > 0) {
-                this.products = localProducts;
-                this.renderProducts();
-                return;
-            }
-
-            // Se não tem no localStorage, tenta API
-            const response = await fetch('/api/admin/products', {
-                headers: getAuthHeaders()
-            });
-            
-            if (response.ok) {
-                this.products = await response.json();
+            // Carrega produtos do localStorage (usado pela loja principal)
+            const storedProducts = localStorage.getItem('products');
+            if (storedProducts) {
+                this.products = JSON.parse(storedProducts);
             } else {
-                // Fallback para dados de exemplo
+                // Produtos padrão se não existir
                 this.products = [
                     {
                         id: 1,
@@ -78,16 +58,31 @@ class ProductManager {
                         image: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=500",
                         stock: 15,
                         status: "active",
-                        description: "Base líquida de alta cobertura"
+                        description: "Base líquida de alta cobertura",
+                        rating: 4.5,
+                        reviewCount: 120
+                    },
+                    {
+                        id: 2,
+                        name: "Hidratante Facial com Vitamina C",
+                        price: 129.90,
+                        category: "Skincare",
+                        category_id: 2,
+                        image: "https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=500",
+                        stock: 8,
+                        status: "active",
+                        description: "Hidratante facial revitalizante",
+                        rating: 4.8,
+                        reviewCount: 89
                     }
                 ];
+                this.saveProductsToStorage();
             }
             
             this.renderProducts();
         } catch (error) {
             console.error('Erro ao carregar produtos:', error);
-            // Fallback para dados locais
-            this.products = JSON.parse(localStorage.getItem('adminProducts')) || [];
+            this.products = [];
             this.renderProducts();
         }
     }
@@ -159,8 +154,6 @@ class ProductManager {
     initializeImageUpload() {
         const fileInput = document.getElementById('product-image');
         const uploadContainer = document.getElementById('upload-container');
-        const imagePreview = document.getElementById('image-preview');
-        const fileInfo = document.getElementById('file-info');
         
         if (!fileInput || !uploadContainer) {
             console.log('Elementos de upload não encontrados');
@@ -406,7 +399,10 @@ class ProductManager {
             category: document.getElementById('product-category').value,
             stock: parseInt(document.getElementById('product-stock').value) || 0,
             status: document.getElementById('product-status').value,
-            description: document.getElementById('product-description').value
+            description: document.getElementById('product-description').value,
+            // Campos adicionais para a loja principal
+            rating: 4.5,
+            reviewCount: Math.floor(Math.random() * 200) + 50
         };
 
         // Validar dados
@@ -469,8 +465,8 @@ class ProductManager {
                 this.products.push(newProduct);
             }
 
-            // Salvar no localStorage
-            localStorage.setItem('adminProducts', JSON.stringify(this.products));
+            // 🔥 SALVAR NO LOCALSTORAGE QUE A LOJA PRINCIPAL USA
+            this.saveProductsToStorage();
             
             // Recarregar dados
             await this.loadProducts();
@@ -483,6 +479,13 @@ class ProductManager {
             console.error('Erro ao salvar produto:', error);
             alert('Erro ao salvar produto');
         }
+    }
+
+    // 🔥 FUNÇÃO CRÍTICA: Salvar produtos no localStorage que a loja principal usa
+    saveProductsToStorage() {
+        // Salva no localStorage com a chave que a loja principal espera
+        localStorage.setItem('products', JSON.stringify(this.products));
+        console.log('✅ Produtos salvos no localStorage para a loja principal:', this.products.length);
     }
 
     editProduct(id) {
@@ -516,7 +519,7 @@ class ProductManager {
     async deleteProduct(id) {
         try {
             this.products = this.products.filter(p => p.id !== id);
-            localStorage.setItem('adminProducts', JSON.stringify(this.products));
+            this.saveProductsToStorage(); // 🔥 Atualizar localStorage
             
             await this.loadProducts();
             await this.loadStats();

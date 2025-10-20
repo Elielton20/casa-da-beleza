@@ -69,10 +69,36 @@ const WHATSAPP_NUMBER = "559391445597";
 
 // Função para carregar produtos do servidor - ATUALIZADA
 // Função para carregar produtos - VERSÃO DEBUG CORRIGIDA
+// Função para carregar produtos - VERSÃO ATUALIZADA PARA INTEGRAÇÃO COM ADMIN
 async function loadProductsFromStorage() {
     try {
         console.log('🔄 Iniciando carregamento de produtos...');
         
+        // 🔥 PRIMEIRO: Tenta carregar do localStorage (produtos do admin)
+        const storedProducts = localStorage.getItem('products');
+        if (storedProducts) {
+            const products = JSON.parse(storedProducts);
+            console.log('✅ Produtos carregados do localStorage (admin):', products.length);
+            
+            // Formatar produtos para o padrão da loja
+            const produtosFormatados = products.map(product => ({
+                id: product.id,
+                name: product.name,
+                price: parseFloat(product.price),
+                category: product.category,
+                category_id: product.category_id || this.getCategoryId(product.category),
+                image: product.image,
+                rating: product.rating || 4.5,
+                reviewCount: product.reviewCount || Math.floor(Math.random() * 200) + 50,
+                stock: product.stock || 0,
+                status: product.status || 'active',
+                description: product.description || ''
+            }));
+            
+            console.log('🎯 Produtos formatados da loja:', produtosFormatados);
+            return produtosFormatados;
+        }
+
         // DEBUG: Verifica se o Supabase está inicializado
         console.log('🔧 Supabase config:', { supabaseUrl, supabaseKey, supabase: !!supabase });
         
@@ -125,20 +151,17 @@ async function loadProductsFromStorage() {
         return initialProducts;
     }
 }
-// Função para carregar categorias da API - NOVA
-async function loadCategoriesFromAPI() {
-    try {
-        console.log('🔄 Carregando categorias da API...');
-        const response = await fetch('/api/categories');
-        if (!response.ok) throw new Error('Erro ao carregar categorias');
-        const categories = await response.json();
-        
-        console.log('✅ Categorias carregadas:', categories);
-        return categories;
-    } catch (error) {
-        console.error('❌ Erro ao carregar categorias:', error);
-        return [];
-    }
+
+// Função auxiliar para obter ID da categoria
+function getCategoryId(categoryName) {
+    const categories = {
+        'Maquiagem': 1,
+        'Skincare': 2,
+        'Cabelos': 3,
+        'Perfumes': 4,
+        'Corpo e Banho': 5
+    };
+    return categories[categoryName] || 1;
 }
 
 // Função para atualizar botões de categoria - NOVA

@@ -2170,3 +2170,44 @@ footer {
 .container {
   overflow-x: visible !important;
 }
+
+/* Container para tabela com rolagem */
+.tabela-container {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: white;
+    margin-bottom: 2rem;
+}
+
+.tabela-container table {
+    min-width: 800px;
+    width: 100%;
+}
+
+/* Estilo para a tabela do admin */
+.products-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.products-table th,
+.products-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.products-table th {
+    background-color: #f5f5f5;
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.product-image-admin {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 5px;
+}
