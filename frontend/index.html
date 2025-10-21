@@ -7,195 +7,134 @@
     <title>Casa da Beleza - Sua loja de cosméticos</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <style>
-    /* ESTILOS PARA O MENU HAMBURGUER */
+    <!-- MENU HAMBURGUER PARA CELULAR - AJUSTADO -->
+<style>
+/* ESTILOS PARA O MENU HAMBURGUER */
+.menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #333;
+    cursor: pointer;
+    padding: 0.5rem;
+    margin-left: 0.5rem;
+}
+
+/* No celular, mostra o hamburguer e esconde o menu normal */
+@media (max-width: 768px) {
     .menu-toggle {
-        display: none;
-        background: none;
-        border: none;
-        font-size: 1.5rem;
-        color: #333;
-        cursor: pointer;
-        padding: 0.5rem;
-        margin-left: 0.5rem;
+        display: block !important;
     }
-
-    @media (max-width: 768px) {
-        .menu-toggle {
-            display: block !important;
-        }
-        
-        nav {
-            display: none !important;
-        }
-        
-        nav.active {
-            display: block !important;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100vh;
-            background: white;
-            z-index: 1000;
-            padding: 80px 20px 20px;
-            overflow-y: auto;
-        }
-        
-        nav.active ul {
-            flex-direction: column;
-            gap: 0;
-            align-items: flex-start;
-        }
-        
-        nav.active li,
-        nav.active a {
-            display: block;
-            margin: 0;
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid #f0f0f0;
-            text-align: left;
-            width: 100%;
-        }
-        
-        nav.active a {
-            font-size: 1.1rem;
-            color: #333;
-            text-decoration: none;
-        }
-        
-        nav.active a:hover {
-            background: #f8f9fa;
-        }
-        
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
+    
+    /* Esconde o menu normal no mobile */
+    nav {
+        display: none !important;
     }
-
-    a[href="admin.html"] {
-        color: #dc3545 !important;
-        font-weight: bold !important;
-    }
-
-    .loading {
-        text-align: center;
-        padding: 3rem;
-        grid-column: 1 / -1;
-    }
-
-    .loading-spinner {
-        border: 4px solid #f3f3f3;
-        border-top: 4px solid var(--primary-color);
-        border-radius: 50%;
-        width: 50px;
-        height: 50px;
-        animation: spin 1s linear infinite;
-        margin: 0 auto 1rem;
-    }
-
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-
-    .retry-button {
-        background: var(--primary-color);
-        color: white;
-        border: none;
-        padding: 0.75rem 1.5rem;
-        border-radius: 5px;
-        cursor: pointer;
-        font-size: 1rem;
-        margin-top: 1rem;
-    }
-
-    .retry-button:hover {
-        background: var(--primary-dark);
-    }
-
-    .demo-products {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 2rem;
-        margin: 2rem 0;
-    }
-
-    .demo-product-card {
-        background: white;
-        border-radius: 10px;
-        padding: 1rem;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        text-align: center;
-    }
-
-    .demo-image {
+    
+    /* Mostra o menu quando active */
+    nav.active {
+        display: block !important;
+        position: fixed;
+        top: 0;
+        left: 0;
         width: 100%;
-        height: 200px;
-        background: #f0f0f0;
-        border-radius: 8px;
-        margin-bottom: 1rem;
+        height: 100vh;
+        background: white;
+        z-index: 1000;
+        padding: 80px 20px 20px;
+        overflow-y: auto;
+    }
+    
+    nav.active ul {
+        flex-direction: column;
+        gap: 0;
+        align-items: flex-start;
+    }
+    
+    nav.active li,
+    nav.active a {
+        display: block;
+        margin: 0;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #f0f0f0;
+        text-align: left;
+        width: 100%;
+    }
+    
+    nav.active a {
+        font-size: 1.1rem;
+        color: #333;
+        text-decoration: none;
+    }
+    
+    nav.active a:hover {
+        background: #f8f9fa;
+    }
+    
+    /* Ajusta o header para os botões */
+    .header-actions {
         display: flex;
         align-items: center;
-        justify-content: center;
-        color: #999;
+        gap: 0.5rem;
     }
+}
 
-    .demo-text {
-        height: 20px;
-        background: #f0f0f0;
-        border-radius: 4px;
-        margin-bottom: 0.5rem;
-    }
+/* Destacar link Admin */
+a[href="admin.html"] {
+    color: #dc3545 !important;
+    font-weight: bold !important;
+}
+</style>
 
-    .demo-text.short {
-        width: 60%;
-        margin: 0 auto 0.5rem;
-    }
-    </style>
-
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const headerActions = document.querySelector('.header-actions');
+<script>
+// JAVASCRIPT PARA O MENU HAMBURGUER
+document.addEventListener('DOMContentLoaded', function() {
+    // Encontra o container de ações do header
+    const headerActions = document.querySelector('.header-actions');
+    
+    if (headerActions) {
+        // Cria o botão do menu hamburguer
+        const menuToggle = document.createElement('button');
+        menuToggle.className = 'menu-toggle';
+        menuToggle.innerHTML = '<i class="fas fa-ellipsis-v"></i>';
         
-        if (headerActions) {
-            const menuToggle = document.createElement('button');
-            menuToggle.className = 'menu-toggle';
-            menuToggle.innerHTML = '<i class="fas fa-ellipsis-v"></i>';
+        // Insere o menu hamburguer antes dos botões de usuário/carrinho
+        headerActions.insertBefore(menuToggle, headerActions.firstChild);
+        
+        const nav = document.querySelector('nav');
+        
+        console.log('Menu toggle criado:', menuToggle);
+        console.log('Nav:', nav);
+        
+        if (menuToggle && nav) {
+            menuToggle.addEventListener('click', function() {
+                const isActive = nav.classList.contains('active');
+                nav.classList.toggle('active');
+                menuToggle.innerHTML = isActive 
+                    ? '<i class="fas fa-ellipsis-v"></i>' 
+                    : '<i class="fas fa-times"></i>';
+            });
             
-            headerActions.insertBefore(menuToggle, headerActions.firstChild);
+            // Fechar menu ao clicar em um link
+            nav.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    nav.classList.remove('active');
+                    menuToggle.innerHTML = '<i class="fas fa-ellipsis-v"></i>';
+                }
+            });
             
-            const nav = document.querySelector('nav');
-            
-            if (menuToggle && nav) {
-                menuToggle.addEventListener('click', function() {
-                    const isActive = nav.classList.contains('active');
-                    nav.classList.toggle('active');
-                    menuToggle.innerHTML = isActive 
-                        ? '<i class="fas fa-ellipsis-v"></i>' 
-                        : '<i class="fas fa-times"></i>';
-                });
-                
-                nav.addEventListener('click', function(e) {
-                    if (e.target.tagName === 'A') {
-                        nav.classList.remove('active');
-                        menuToggle.innerHTML = '<i class="fas fa-ellipsis-v"></i>';
-                    }
-                });
-                
-                document.addEventListener('click', function(e) {
-                    if (!nav.contains(e.target) && !menuToggle.contains(e.target) && nav.classList.contains('active')) {
-                        nav.classList.remove('active');
-                        menuToggle.innerHTML = '<i class="fas fa-ellipsis-v"></i>';
-                    }
-                });
-            }
+            // Fechar menu ao clicar fora
+            document.addEventListener('click', function(e) {
+                if (!nav.contains(e.target) && !menuToggle.contains(e.target) && nav.classList.contains('active')) {
+                    nav.classList.remove('active');
+                    menuToggle.innerHTML = '<i class="fas fa-ellipsis-v"></i>';
+                }
+            });
         }
-    });
-    </script>
+    }
+});
+</script>
 </head>
 <body>
     <!-- Modal do Carrinho -->
@@ -272,19 +211,24 @@
         <div class="filters">
             <div class="categories">
                <button class="category-btn active" data-category-id="all">Todos</button>
-               <!-- Categorias serão carregadas via JavaScript -->
+               <button class="category-btn" data-category-id="1">Maquiagem</button>
+               <button class="category-btn" data-category-id="2">Skincare</button>
+               <button class="category-btn" data-category-id="3">Cabelos</button>
+               <button class="category-btn" data-category-id="4">Perfumes</button>
+               <button class="category-btn" data-category-id="5">Corpo e Banho</button>
             </div>
             <div class="search-sort">
                 <div class="search-box">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="search-input" placeholder="Buscar produtos...">
+                    <input type="text" placeholder="Buscar produtos...">
                 </div>
                 <div class="sort">
-                    <select id="sort-select">
+                    <select>
                         <option>Ordenar por</option>
-                        <option value="price_asc">Menor preço</option>
-                        <option value="price_desc">Maior preço</option>
-                        <option value="name">Nome A-Z</option>
+                        <option>Menor preço</option>
+                        <option>Maior preço</option>
+                        <option>Mais vendidos</option>
+                        <option>Melhor avaliados</option>
                     </select>
                 </div>
             </div>
@@ -294,10 +238,7 @@
     <!-- Produtos -->
     <section class="container">
         <div class="products" id="products-container">
-            <div class="loading">
-                <div class="loading-spinner"></div>
-                <p>Carregando produtos da loja...</p>
-            </div>
+            <!-- Produtos serão inseridos via JavaScript -->
         </div>
     </section>
 
@@ -386,127 +327,212 @@
         </div>
     </div>
 
+    <!-- Loading Overlay -->
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+
     <!-- Script do Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-    // ========== CONFIGURAÇÃO DO SUPABASE ==========
-    const SUPABASE_URL = 'https://djpfhgbxspibucvacxpt.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqcGZoZ2J4c3BpYnVjdmFjeHB0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDg3NzMwNCwiZXhwIjoyMDc2NDUzMzA0fQ.dziOb3cIrlGiiM0PuJABuFioOf9BgnMcABQpM27N3qc';
-    const WHATSAPP_NUMBER = "5593991445597";
+    // ========== INICIALIZAÇÃO DO SUPABASE ==========
+    const supabaseUrl = 'https://djpfhgbxspibucvacxpt.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqcGZoZ2J4c3BpYnVjdmFjeHB0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDg3NzMwNCwiZXhwIjoyMDc2NDUzMzA0fQ.dziOb3cIrlGiiM0PuJABuFioOf9BgnMcABQpM27N3qc';
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
     // ========== VARIÁVEIS GLOBAIS ==========
     let cart = [];
     let currentProducts = [];
     let currentUser = null;
-    let supabase = null;
+    const WHATSAPP_NUMBER = "559391445597";
 
-    // ========== INICIALIZAÇÃO DO SUPABASE ==========
-    function initializeSupabase() {
+    // ========== FUNÇÕES PRINCIPAIS CORRIGIDAS ==========
+
+    // Função para carregar produtos - SOMENTE DO SUPABASE
+    async function loadProductsFromStorage() {
         try {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-            console.log('✅ Supabase inicializado');
-            return true;
-        } catch (error) {
-            console.error('❌ Erro ao inicializar Supabase:', error);
-            return false;
-        }
-    }
-
-    // ========== CARREGAMENTO DE PRODUTOS - VERSÃO CORRIGIDA ==========
-    async function loadProducts() {
-        console.log('🔄 Iniciando carregamento de produtos...');
-        
-        showLoadingState();
-        
-        try {
-            // Inicializar Supabase
-            if (!initializeSupabase()) {
-                throw new Error('Não foi possível conectar com o banco de dados');
-            }
-
-            // Fazer consulta SIMPLES primeiro - sem relacionamentos complexos
+            console.log('🔄 Carregando produtos do Supabase...');
+            
+            // Carrega produtos do Supabase
             const { data: products, error } = await supabase
                 .from('products')
-                .select('*')
-                .eq('status', 'Ativo') // Note: Pode ser 'Ativo' ou 'active'
+                .select(`
+                    id,
+                    name, 
+                    price,
+                    image,
+                    category_id,
+                    categories (name)
+                `)
                 .order('name');
 
             if (error) {
-                console.error('❌ Erro na consulta:', error);
-                throw error;
+                console.error('❌ Erro ao carregar produtos do Supabase:', error);
+                return [];
             }
-
-            console.log('📦 Produtos encontrados:', products);
 
             if (products && products.length > 0) {
-                currentProducts = formatProducts(products);
-                renderProducts(currentProducts);
-                console.log('✅ Produtos carregados com sucesso:', currentProducts.length);
-            } else {
-                showNoProductsMessage();
-                console.log('ℹ️ Nenhum produto encontrado');
+                console.log('✅ Produtos carregados do Supabase:', products.length);
+                
+                return products.map(product => ({
+                    id: product.id,
+                    name: product.name,
+                    price: parseFloat(product.price),
+                    category_id: product.category_id,
+                    category: product.categories?.name || 'Sem categoria',
+                    image: product.image || 'https://via.placeholder.com/300x300?text=Produto+Sem+Imagem',
+                    rating: 4.5,
+                    reviewCount: Math.floor(Math.random() * 200) + 50
+                }));
             }
-
+            
+            console.log('ℹ️ Nenhum produto encontrado no Supabase');
+            return [];
+            
         } catch (error) {
             console.error('❌ Erro ao carregar produtos:', error);
-            showErrorMessage('Erro ao carregar produtos. Verifique o console para detalhes.', error);
+            return [];
         }
     }
 
-    // Formatar produtos - VERSÃO SIMPLIFICADA
-    function formatProducts(products) {
-        return products.map(product => ({
-            id: product.id,
-            name: product.name,
-            price: parseFloat(product.price),
-            category: product.category || 'Sem categoria',
-            category_id: product.category_id,
-            image: product.image || getDefaultImage(product.category),
-            rating: 4.0 + Math.random() * 1.0, // Rating entre 4.0 e 5.0
-            reviewCount: Math.floor(Math.random() * 100) + 20
-        }));
+    // Função para carregar categorias - SOMENTE DO SUPABASE
+    async function loadCategoriesFromAPI() {
+        try {
+            console.log('🔄 Carregando categorias do Supabase...');
+            
+            const { data: categories, error } = await supabase
+                .from('categories')
+                .select('*')
+                .eq('status', 'active')
+                .order('name');
+
+            if (error) {
+                console.error('❌ Erro ao carregar categorias do Supabase:', error);
+                return [];
+            }
+
+            if (categories && categories.length > 0) {
+                console.log('✅ Categorias carregadas do Supabase:', categories.length);
+                return categories;
+            }
+            
+            console.log('ℹ️ Nenhuma categoria encontrada no Supabase');
+            return [];
+            
+        } catch (error) {
+            console.error('❌ Erro ao carregar categorias:', error);
+            return [];
+        }
     }
 
-    // Imagem padrão baseada na categoria
-    function getDefaultImage(category) {
-        const categoryImages = {
-            'Cabelos': 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=300',
-            'Corpo e Banho': 'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=300',
-            'Maquiagem': 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=300',
-            'Skincare': 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=300',
-            'Perfumes': 'https://images.unsplash.com/photo-1541643600914-78b084683601?w=300'
-        };
-        return categoryImages[category] || 'https://via.placeholder.com/300x300?text=Produto+Sem+Imagem';
+    // Função para atualizar botões de categoria - CORRIGIDA
+    async function updateCategoryButtons() {
+        try {
+            const categories = await loadCategoriesFromAPI();
+            const categoriesContainer = document.querySelector('.categories');
+            
+            if (!categoriesContainer) {
+                console.error('❌ Container de categorias não encontrado');
+                return;
+            }
+            
+            // Limpa categorias existentes (exceto "Todos")
+            const existingButtons = categoriesContainer.querySelectorAll('.category-btn');
+            existingButtons.forEach(btn => {
+                if (btn.getAttribute('data-category-id') !== 'all') {
+                    btn.remove();
+                }
+            });
+            
+            // Adiciona categorias do Supabase
+            categories.forEach(category => {
+                const button = document.createElement('button');
+                button.className = 'category-btn';
+                button.setAttribute('data-category-id', category.id);
+                button.textContent = category.name;
+                button.addEventListener('click', function() {
+                    filterProductsByCategory(category.id);
+                });
+                
+                categoriesContainer.appendChild(button);
+            });
+            
+            console.log('✅ Botões de categoria atualizados com', categories.length, 'categorias');
+        } catch (error) {
+            console.error('❌ Erro ao atualizar botões de categoria:', error);
+        }
     }
 
-    // ========== FUNÇÕES DE RENDERIZAÇÃO ==========
-    function showLoadingState() {
-        const productsContainer = document.getElementById('products-container');
-        productsContainer.innerHTML = `
-            <div class="loading">
-                <div class="loading-spinner"></div>
-                <p>Carregando catálogo de produtos...</p>
-            </div>
-        `;
-    }
-
-    function renderProducts(products) {
-        const productsContainer = document.getElementById('products-container');
+    // Função para filtrar produtos por categoria - CORRIGIDA
+    function filterProductsByCategory(categoryId) {
+        console.log('🎯 Filtrando produtos por categoria ID:', categoryId);
         
-        if (!products || products.length === 0) {
-            showNoProductsMessage();
+        // Remove a classe active de todos os botões
+        document.querySelectorAll('.category-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        // Adiciona active no botão clicado
+        event.target.classList.add('active');
+        
+        // Se for "Todos", mostra todos os produtos
+        if (categoryId === 'all') {
+            loadProducts();
             return;
         }
+        
+        // Filtra os produtos pela categoria ID
+        const filteredProducts = currentProducts.filter(product => 
+            product.category_id == categoryId
+        );
+        
+        renderFilteredProducts(filteredProducts);
+    }
 
+    // ========== INICIALIZAÇÃO ==========
+    document.addEventListener('DOMContentLoaded', async function() {
+        console.log('🚀 Iniciando aplicação...');
+        await loadProducts();
+        await updateCategoryButtons();
+        setupEventListeners();
+        checkUserAuth();
+        loadCartFromStorage();
+        updateCartCounter();
+    });
+
+    // Carregar produtos na página - CORRIGIDA
+    async function loadProducts() {
+        const productsContainer = document.getElementById('products-container');
+        
+        if (!productsContainer) {
+            console.error('❌ Container de produtos não encontrado');
+            return;
+        }
+        
+        productsContainer.innerHTML = '<div class="loading">Carregando produtos...</div>';
+        
+        currentProducts = await loadProductsFromStorage();
+        
         productsContainer.innerHTML = '';
         
-        products.forEach(product => {
+        if (currentProducts.length === 0) {
+            productsContainer.innerHTML = `
+                <div style="text-align: center; padding: 3rem; grid-column: 1 / -1;">
+                    <i class="fas fa-box-open" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
+                    <h3 style="color: #666; margin-bottom: 1rem;">Nenhum produto disponível</h3>
+                    <p style="color: #999;">Os produtos serão adicionados em breve.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        currentProducts.forEach(product => {
             const productCard = document.createElement('div');
             productCard.className = 'product-card';
             productCard.innerHTML = `
                 <img src="${product.image}" alt="${product.name}" class="product-image"
-                     loading="lazy" onerror="this.src='https://via.placeholder.com/300x300?text=Imagem+Indisponível'">
+                     onerror="this.src='https://via.placeholder.com/300x300?text=Produto+Sem+Imagem'">
                 <div class="product-info">
                     <h3 class="product-title">${product.name}</h3>
                     <div class="product-price">R$ ${product.price.toFixed(2)}</div>
@@ -528,148 +554,9 @@
             `;
             productsContainer.appendChild(productCard);
         });
-
-        // Atualizar categorias após carregar produtos
-        updateCategoryFilters(products);
     }
 
-    function showNoProductsMessage() {
-        const productsContainer = document.getElementById('products-container');
-        productsContainer.innerHTML = `
-            <div style="text-align: center; padding: 3rem; grid-column: 1 / -1;">
-                <i class="fas fa-box-open" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
-                <h3 style="color: #666; margin-bottom: 1rem;">Nenhum produto disponível</h3>
-                <p style="color: #999; margin-bottom: 1rem;">Verifique se os produtos estão com status "Ativo" no admin.</p>
-                <button class="retry-button" onclick="loadProducts()">
-                    <i class="fas fa-redo"></i> Tentar Novamente
-                </button>
-            </div>
-        `;
-    }
-
-    function showErrorMessage(message, error) {
-        const productsContainer = document.getElementById('products-container');
-        productsContainer.innerHTML = `
-            <div style="text-align: center; padding: 3rem; grid-column: 1 / -1;">
-                <i class="fas fa-exclamation-triangle" style="font-size: 4rem; color: #ff6b6b; margin-bottom: 1rem;"></i>
-                <h3 style="color: #666; margin-bottom: 1rem;">${message}</h3>
-                <p style="color: #999; margin-bottom: 1rem;">${error?.message || 'Erro de conexão'}</p>
-                <div style="margin-top: 1rem;">
-                    <button class="retry-button" onclick="loadProducts()" style="margin-right: 1rem;">
-                        <i class="fas fa-redo"></i> Tentar Novamente
-                    </button>
-                    <button class="retry-button" onclick="loadDebugInfo()" style="background: #6c757d;">
-                        <i class="fas fa-bug"></i> Informações de Debug
-                    </button>
-                </div>
-            </div>
-        `;
-    }
-
-    // ========== DEBUG E INFORMAÇÕES ==========
-    async function loadDebugInfo() {
-        console.log('🐛 Iniciando debug...');
-        
-        if (!initializeSupabase()) {
-            alert('Supabase não inicializado');
-            return;
-        }
-
-        try {
-            // Testar conexão básica
-            const { data, error } = await supabase
-                .from('products')
-                .select('count')
-                .single();
-
-            console.log('📊 Debug - Contagem de produtos:', data);
-            console.log('📊 Debug - Erro:', error);
-
-            // Tentar buscar alguns produtos sem filtros
-            const { data: products, error: productsError } = await supabase
-                .from('products')
-                .select('*')
-                .limit(5);
-
-            console.log('📊 Debug - Primeiros 5 produtos:', products);
-            console.log('📊 Debug - Erro produtos:', productsError);
-
-            alert('Verifique o console do navegador (F12) para ver as informações de debug');
-
-        } catch (error) {
-            console.error('❌ Erro no debug:', error);
-            alert('Erro no debug. Verifique o console.');
-        }
-    }
-
-    // ========== FILTROS E CATEGORIAS ==========
-    function updateCategoryFilters(products) {
-        const categoriesContainer = document.querySelector('.categories');
-        if (!categoriesContainer) return;
-        
-        // Extrair categorias únicas dos produtos
-        const categories = [...new Set(products.map(p => p.category).filter(Boolean))];
-        
-        // Limpar categorias existentes (exceto "Todos")
-        const existingButtons = categoriesContainer.querySelectorAll('.category-btn');
-        existingButtons.forEach(btn => {
-            if (btn.getAttribute('data-category-id') !== 'all') {
-                btn.remove();
-            }
-        });
-        
-        // Adicionar categorias encontradas
-        categories.forEach((category, index) => {
-            const button = document.createElement('button');
-            button.className = 'category-btn';
-            button.setAttribute('data-category-id', index + 1);
-            button.textContent = category;
-            button.addEventListener('click', function() {
-                filterProductsByCategory(category);
-            });
-            
-            categoriesContainer.appendChild(button);
-        });
-    }
-
-    function filterProductsByCategory(category) {
-        document.querySelectorAll('.category-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        
-        event.target.classList.add('active');
-        
-        if (category === 'all') {
-            renderProducts(currentProducts);
-            return;
-        }
-        
-        const filteredProducts = currentProducts.filter(product => 
-            product.category === category
-        );
-        
-        renderProducts(filteredProducts);
-    }
-
-    // ========== INICIALIZAÇÃO DA APLICAÇÃO ==========
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('🚀 Iniciando Casa da Beleza...');
-        
-        // Carregar produtos imediatamente
-        loadProducts();
-        
-        // Inicializar outras funcionalidades
-        initializeApp();
-    });
-
-    function initializeApp() {
-        setupEventListeners();
-        checkUserAuth();
-        loadCartFromStorage();
-        updateCartCounter();
-    }
-
-    // ========== FUNÇÕES DO CARRINHO ==========
+    // ========== FUNÇÕES DO CARRINHO (MANTIDAS) ==========
     function addToCart(productId) {
         const product = currentProducts.find(p => p.id === productId);
         
@@ -797,6 +684,7 @@
         }
     }
 
+    // Finalizar compra via WhatsApp
     function checkout() {
         if (cart.length === 0) {
             alert('Seu carrinho está vazio!');
@@ -835,7 +723,7 @@
         showNotification('Pedido enviado para o WhatsApp!');
     }
 
-    // ========== FUNÇÃO COMPRAR AGORA ==========
+    // ========== FUNÇÃO COMPRAR AGORA (MANTIDA) ==========
     function buyNow(productId) {
         const product = currentProducts.find(p => p.id === productId);
         if (!product) {
@@ -944,60 +832,59 @@
             }
         });
         
+        // Filtros de categoria
+        const categoryBtns = document.querySelectorAll('.category-btn');
+        categoryBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const categoryId = this.getAttribute('data-category-id');
+                filterProductsByCategory(categoryId);
+            });
+        });
+        
         // Busca
-        const searchInput = document.getElementById('search-input');
+        const searchInput = document.querySelector('.search-box input');
         if (searchInput) {
-            let searchTimeout;
             searchInput.addEventListener('input', (e) => {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => {
-                    searchProducts(e.target.value);
-                }, 300);
+                searchProducts(e.target.value);
             });
         }
         
         // Ordenação
-        const sortSelect = document.getElementById('sort-select');
+        const sortSelect = document.querySelector('.sort select');
         if (sortSelect) {
             sortSelect.addEventListener('change', (e) => {
                 sortProducts(e.target.value);
             });
         }
-    }
-
-    function searchProducts(query) {
-        if (!query.trim()) {
-            renderProducts(currentProducts);
-            return;
+        
+        // Event listener para formulário de login
+        const loginForm = document.getElementById('login-form');
+        if (loginForm) {
+            loginForm.addEventListener('submit', handleUserLogin);
         }
 
-        const filteredProducts = currentProducts.filter(product =>
-            product.name.toLowerCase().includes(query.toLowerCase()) ||
-            (product.category && product.category.toLowerCase().includes(query.toLowerCase()))
-        );
-        
-        renderProducts(filteredProducts);
+        // Verificar se há novos produtos do admin
+        checkForNewProducts();
     }
 
-    function sortProducts(criteria) {
-        let sortedProducts = [...currentProducts];
-        
-        switch (criteria) {
-            case 'price_asc':
-                sortedProducts.sort((a, b) => a.price - b.price);
-                break;
-            case 'price_desc':
-                sortedProducts.sort((a, b) => b.price - a.price);
-                break;
-            case 'name':
-                sortedProducts.sort((a, b) => a.name.localeCompare(b.name));
-                break;
-        }
-        
-        renderProducts(sortedProducts);
+    // Verificar novos produtos do admin
+    function checkForNewProducts() {
+        setInterval(async () => {
+            const adminProducts = localStorage.getItem('adminProducts');
+            if (adminProducts) {
+                const parsedProducts = JSON.parse(adminProducts);
+                const currentProductIds = currentProducts.map(p => p.id);
+                const newProductIds = parsedProducts.map(p => p.id);
+                
+                if (JSON.stringify(currentProductIds) !== JSON.stringify(newProductIds)) {
+                    console.log('Novos produtos detectados, recarregando...');
+                    await loadProducts();
+                }
+            }
+        }, 5000);
     }
 
-    // ========== FUNÇÕES DE USUÁRIO ==========
+    // ========== FUNÇÕES DE USUÁRIO (MANTIDAS) ==========
     function checkUserAuth() {
         const user = localStorage.getItem('user');
         const token = localStorage.getItem('userToken');
@@ -1026,7 +913,295 @@
         }
     }
 
-    console.log('✅ Casa da Beleza - Sistema carregado e pronto');
+    // Login do usuário
+    async function handleUserLogin(e) {
+        e.preventDefault();
+        
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        
+        try {
+            const response = await fetch('/api/users/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, password })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                localStorage.setItem('userToken', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                currentUser = data.user;
+                
+                updateUserInterface();
+                document.getElementById('login-modal').style.display = 'none';
+                
+                showNotification(`Bem-vindo(a), ${data.user.name}!`);
+            } else {
+                alert(data.error || 'Erro no login');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            showLoading();
+            setTimeout(() => {
+                hideLoading();
+                currentUser = {
+                    name: "Usuário Demo",
+                    email: email
+                };
+                
+                localStorage.setItem('user', JSON.stringify(currentUser));
+                localStorage.setItem('userToken', 'demo-token');
+                updateUserInterface();
+                document.getElementById('login-modal').style.display = 'none';
+                
+                showNotification(`Bem-vindo(a), ${currentUser.name}!`);
+            }, 1000);
+        }
+    }
+
+    // Logout do usuário
+    function logoutUser() {
+        localStorage.removeItem('userToken');
+        localStorage.removeItem('user');
+        currentUser = null;
+        
+        updateUserInterface();
+        const loginModal = document.getElementById('login-modal');
+        if (loginModal) {
+            loginModal.style.display = 'none';
+        }
+        
+        showNotification('Você saiu da sua conta');
+    }
+
+    // Mostrar formulário de registro
+    function showRegisterForm() {
+        const loginModal = document.getElementById('login-modal');
+        if (!loginModal) return;
+        
+        const loginForm = loginModal.querySelector('form');
+        const modalHeader = loginModal.querySelector('.modal-header h2');
+        
+        modalHeader.textContent = 'Criar Conta';
+        loginForm.innerHTML = `
+            <div class="form-group">
+                <label for="register-name">Nome completo</label>
+                <input type="text" id="register-name" required>
+            </div>
+            <div class="form-group">
+                <label for="register-email">E-mail</label>
+                <input type="email" id="register-email" required>
+            </div>
+            <div class="form-group">
+                <label for="register-password">Senha</label>
+                <input type="password" id="register-password" required>
+            </div>
+            <div class="form-group">
+                <label for="register-confirm-password">Confirmar senha</label>
+                <input type="password" id="register-confirm-password" required>
+            </div>
+            <button type="button" class="login-btn" onclick="handleUserRegister()">Criar conta</button>
+            <div style="text-align: center; margin-top: 1rem;">
+                <a href="#" style="color: var(--primary-color);" onclick="showLoginForm()">Já tenho uma conta</a>
+            </div>
+        `;
+    }
+
+    // Mostrar formulário de login
+    function showLoginForm() {
+        const loginModal = document.getElementById('login-modal');
+        if (!loginModal) return;
+        
+        const loginForm = loginModal.querySelector('form');
+        const modalHeader = loginModal.querySelector('.modal-header h2');
+        
+        modalHeader.textContent = 'Login';
+        loginForm.innerHTML = `
+            <div class="form-group">
+                <label for="email">E-mail</label>
+                <input type="email" id="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Senha</label>
+                <input type="password" id="password" required>
+            </div>
+            <div class="form-options">
+                <label>
+                    <input type="checkbox"> Lembrar-me
+                </label>
+                <a href="#">Esqueci minha senha</a>
+            </div>
+            <button type="submit" class="login-btn">Entrar</button>
+            <div style="text-align: center; margin-top: 1rem;">
+                <a href="#" style="color: var(--primary-color);" onclick="showRegisterForm()">Criar conta</a>
+            </div>
+        `;
+        
+        loginForm.addEventListener('submit', handleUserLogin);
+    }
+
+    // Registro do usuário
+    async function handleUserRegister() {
+        const name = document.getElementById('register-name').value;
+        const email = document.getElementById('register-email').value;
+        const password = document.getElementById('register-password').value;
+        const confirmPassword = document.getElementById('register-confirm-password').value;
+        
+        if (password !== confirmPassword) {
+            alert('As senhas não coincidem!');
+            return;
+        }
+        
+        if (password.length < 6) {
+            alert('A senha deve ter pelo menos 6 caracteres!');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/users/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name, email, password })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                localStorage.setItem('userToken', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                currentUser = data.user;
+                
+                updateUserInterface();
+                document.getElementById('login-modal').style.display = 'none';
+                
+                showNotification(`Conta criada com sucesso! Bem-vindo(a), ${data.user.name}!`);
+            } else {
+                alert(data.error || 'Erro no registro');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            showLoading();
+            setTimeout(() => {
+                hideLoading();
+                currentUser = {
+                    name: name,
+                    email: email
+                };
+                
+                localStorage.setItem('user', JSON.stringify(currentUser));
+                localStorage.setItem('userToken', 'demo-token');
+                updateUserInterface();
+                document.getElementById('login-modal').style.display = 'none';
+                
+                showNotification(`Conta criada com sucesso! Bem-vindo(a), ${currentUser.name}!`);
+            }, 1000);
+        }
+    }
+
+    // ========== FUNÇÕES DE FILTRO E BUSCA (MANTIDAS) ==========
+    function searchProducts(query) {
+        const filteredProducts = currentProducts.filter(product =>
+            product.name.toLowerCase().includes(query.toLowerCase()) ||
+            product.category.toLowerCase().includes(query.toLowerCase())
+        );
+        
+        renderFilteredProducts(filteredProducts);
+    }
+
+    function sortProducts(criteria) {
+        let sortedProducts = [...currentProducts];
+        
+        switch (criteria) {
+            case 'Menor preço':
+                sortedProducts.sort((a, b) => a.price - b.price);
+                break;
+            case 'Maior preço':
+                sortedProducts.sort((a, b) => b.price - a.price);
+                break;
+            case 'Mais vendidos':
+                sortedProducts.sort((a, b) => b.reviewCount - a.reviewCount);
+                break;
+            case 'Melhor avaliados':
+                sortedProducts.sort((a, b) => b.rating - a.rating);
+                break;
+        }
+        
+        renderFilteredProducts(sortedProducts);
+    }
+
+    function renderFilteredProducts(filteredProducts) {
+        const productsContainer = document.getElementById('products-container');
+        
+        productsContainer.innerHTML = '';
+        
+        if (filteredProducts.length === 0) {
+            productsContainer.innerHTML = `
+                <div style="text-align: center; padding: 3rem; grid-column: 1 / -1;">
+                    <i class="fas fa-search" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
+                    <h3 style="color: #666; margin-bottom: 1rem;">Nenhum produto encontrado</h3>
+                    <p style="color: #999;">Tente outros termos de busca.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        filteredProducts.forEach(product => {
+            const productCard = document.createElement('div');
+            productCard.className = 'product-card';
+            productCard.innerHTML = `
+                <img src="${product.image}" alt="${product.name}" class="product-image"
+                     onerror="this.src='https://via.placeholder.com/300x300?text=Produto+Sem+Imagem'">
+                <div class="product-info">
+                    <h3 class="product-title">${product.name}</h3>
+                    <div class="product-price">R$ ${product.price.toFixed(2)}</div>
+                    <div class="product-rating">
+                        <div class="stars">
+                            ${generateStars(product.rating)}
+                        </div>
+                        <span>(${product.reviewCount})</span>
+                    </div>
+                    <div class="product-actions">
+                        <button class="buy-now-btn" onclick="buyNow(${product.id})">
+                            <i class="fab fa-whatsapp"></i> Comprar Agora
+                        </button>
+                        <button class="add-to-cart-btn" onclick="addToCart(${product.id})">
+                            <i class="fas fa-shopping-cart"></i> Carrinho
+                        </button>
+                    </div>
+                </div>
+            `;
+            productsContainer.appendChild(productCard);
+        });
+    }
+
+    // ========== FUNÇÕES DE CARREGAMENTO ==========
+    function showLoading() {
+        const loadingOverlay = document.getElementById('loading-overlay');
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'flex';
+        }
+    }
+
+    function hideLoading() {
+        const loadingOverlay = document.getElementById('loading-overlay');
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'none';
+        }
+    }
+
+    // Função para forçar atualização dos produtos
+    function refreshProducts() {
+        loadProducts();
+        showNotification('Produtos atualizados!');
+    }
+
+    console.log('✅ Aplicação carregada com sucesso!');
     </script>
 </body>
-</html> 
+</html>
