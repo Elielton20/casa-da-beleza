@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://casa-da-beleza-1-y7c9.onrender.com/sitemap.xml
