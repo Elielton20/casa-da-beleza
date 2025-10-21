@@ -95,7 +95,6 @@ class ProductManager {
         }
 
         this.products.forEach(product => {
-            // 🔥 CORREÇÃO: Obter o nome da categoria corretamente
             const categoryName = this.getCategoryName(product.category_id);
             
             const row = document.createElement('tr');
@@ -106,7 +105,7 @@ class ProductManager {
                 </td>
                 <td>${product.name}</td>
                 <td>R$ ${parseFloat(product.price).toFixed(2)}</td>
-                <td>${categoryName}</td> <!-- 🔥 AQUI ESTÁ A CORREÇÃO -->
+                <td>${categoryName}</td>
                 <td>${product.stock}</td>
                 <td>
                     <span class="status-badge ${product.status === 'active' ? 'active' : 'inactive'}">
@@ -126,7 +125,7 @@ class ProductManager {
         });
     }
 
-    // 🔥 NOVA FUNÇÃO: Converter category_id para nome da categoria
+    // 🔥 FUNÇÃO: Converter category_id para nome da categoria
     getCategoryName(categoryId) {
         const category = this.categories.find(cat => cat.id === categoryId);
         return category ? category.name : 'Geral';
@@ -243,6 +242,13 @@ class ProductManager {
         this.currentProductId = null;
         document.getElementById('product-form').reset();
         document.getElementById('image-preview').innerHTML = '<i class="fas fa-image" style="color: #ccc;"></i>';
+        
+        // 🔥 RESTAURAR BOTÃO DE SALVAR se estiver em loading
+        const submitBtn = document.querySelector('#product-form button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-save"></i> Salvar Produto';
+            submitBtn.disabled = false;
+        }
     }
 
     previewImage(file) {
@@ -257,44 +263,41 @@ class ProductManager {
     }
 
     async saveProduct() {
-        const formData = {
-            name: document.getElementById('product-name').value,
-            price: parseFloat(document.getElementById('product-price').value),
-            category_id: parseInt(document.getElementById('product-category').value),
-            stock: parseInt(document.getElementById('product-stock').value),
-            status: document.getElementById('product-status').value,
-            description: document.getElementById('product-description').value
-        };
+        // 🔥 BLOQUEAR BOTÃO durante salvamento
+        const submitBtn = document.querySelector('#product-form button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+        submitBtn.disabled = true;
 
-        // Validar dados
-        if (!formData.name || !formData.price || !formData.category_id) {
-            alert('Por favor, preencha todos os campos obrigatórios!');
-            return;
-        }
-
-        // Simular upload de imagem (em produção, você enviaria para o servidor)
-        const imageFile = document.getElementById('product-image').files[0];
-        if (imageFile) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                formData.image = e.target.result;
-                this.finalizeSave(formData);
+        try {
+            const formData = {
+                name: document.getElementById('product-name').value,
+                price: parseFloat(document.getElementById('product-price').value),
+                category_id: parseInt(document.getElementById('product-category').value),
+                stock: parseInt(document.getElementById('product-stock').value),
+                status: document.getElementById('product-status').value,
+                description: document.getElementById('product-description').value
             };
-            reader.readAsDataURL(imageFile);
-        } else {
-            // Manter imagem existente se estiver editando
-            if (this.currentProductId) {
+
+            // Validar dados
+            if (!formData.name || !formData.price || !formData.category_id) {
+                throw new Error('Por favor, preencha todos os campos obrigatórios!');
+            }
+
+            // Processar imagem
+            const imageFile = document.getElementById('product-image').files[0];
+            if (imageFile) {
+                const imageBase64 = await this.processImage(imageFile);
+                formData.image = imageBase64;
+            } else if (this.currentProductId) {
+                // Manter imagem existente se estiver editando
                 const existingProduct = this.products.find(p => p.id === this.currentProductId);
                 formData.image = existingProduct.image;
             } else {
                 formData.image = 'https://via.placeholder.com/300x300?text=Produto+Sem+Imagem';
             }
-            this.finalizeSave(formData);
-        }
-    }
 
-    async finalizeSave(formData) {
-        try {
+            // Fazer requisição para API
             let response;
             
             if (this.currentProductId) {
@@ -321,11 +324,27 @@ class ProductManager {
             await this.loadStats();
             this.closeProductModal();
             
-            alert('Produto salvo com sucesso!');
+            this.showNotification('✅ Produto salvo com sucesso!');
+            
         } catch (error) {
             console.error('Erro:', error);
-            alert('Erro ao salvar produto');
+            alert(error.message || 'Erro ao salvar produto');
+        } finally {
+            // 🔥 RESTAURAR BOTÃO independente do resultado
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
         }
+    }
+
+    processImage(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                resolve(e.target.result);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
     }
 
     editProduct(id) {
@@ -401,7 +420,7 @@ class ProductManager {
                 </td>
                 <td>${product.name}</td>
                 <td>R$ ${parseFloat(product.price).toFixed(2)}</td>
-                <td>${categoryName}</td> <!-- 🔥 AQUI TAMBÉM -->
+                <td>${categoryName}</td>
                 <td>${product.stock}</td>
                 <td>
                     <span class="status-badge ${product.status === 'active' ? 'active' : 'inactive'}">
@@ -425,6 +444,42 @@ class ProductManager {
         document.getElementById('total-products').textContent = stats.totalProducts;
         document.getElementById('total-value').textContent = `R$ ${stats.totalValue.toFixed(2)}`;
         document.getElementById('total-categories').textContent = stats.totalCategories;
+    }
+
+    // 🔥 FUNÇÃO DE NOTIFICAÇÃO MELHORADA
+    showNotification(message) {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 5px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        `;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        // Animação de entrada
+        setTimeout(() => {
+            notification.style.transform = 'translateX(0)';
+        }, 100);
+        
+        // Remover após 3 segundos
+        setTimeout(() => {
+            notification.style.transform = 'translateX(400px)';
+            setTimeout(() => {
+                if (document.body.contains(notification)) {
+                    document.body.removeChild(notification);
+                }
+            }, 300);
+        }, 3000);
     }
 }
 
