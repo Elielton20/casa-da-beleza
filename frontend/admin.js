@@ -13,11 +13,6 @@ if (!checkAdminAuth()) {
     // Redirecionamento já acontece na função acima
 }
 
-// 🔥 CACHE para produtos - evita recarregamentos desnecessários
-let productsCache = null;
-let lastCacheTime = 0;
-const CACHE_DURATION = 30000; // 30 segundos
-
 // Headers padrão para requisições autenticadas
 function getAuthHeaders() {
     const token = localStorage.getItem('adminToken');
@@ -25,26 +20,6 @@ function getAuthHeaders() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
     };
-}
-
-// 🔥 Função fetch OTIMIZADA com timeout
-async function fastFetch(url, options = {}) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 segundos timeout
-    
-    try {
-        const response = await fetch(url, {
-            ...options,
-            signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return await response.json();
-    } catch (error) {
-        clearTimeout(timeoutId);
-        throw error;
-    }
 }
 
 // Gerenciamento de Produtos
@@ -65,79 +40,53 @@ class ProductManager {
     }
 
     async init() {
-        // 🔥 CARREGAMENTO PARALELO - Mais rápido
-        await Promise.all([
-            this.loadProducts(),
-            this.loadStats()
-        ]);
+        await this.loadProducts();
+        await this.loadStats();
         this.setupEventListeners();
     }
 
     async loadProducts() {
-        // 🔥 USAR CACHE se disponível e recente
-        const now = Date.now();
-        if (productsCache && (now - lastCacheTime) < CACHE_DURATION) {
-            this.products = productsCache;
-            this.renderProducts();
-            return;
-        }
-
         try {
-            // 🔥 FETCH RÁPIDO com timeout
-            this.products = await fastFetch('/api/admin/products', {
+            const response = await fetch('/api/admin/products', {
                 headers: getAuthHeaders()
             });
             
-            // 🔥 ATUALIZAR CACHE
-            productsCache = this.products;
-            lastCacheTime = Date.now();
+            if (!response.ok) throw new Error('Erro ao carregar produtos');
             
+            this.products = await response.json();
             this.renderProducts();
         } catch (error) {
-            console.error('Erro ao carregar produtos:', error);
-            this.showError('Erro ao carregar produtos. Usando cache local.');
-            this.renderProducts();
+            console.error('Erro:', error);
+            alert('Erro ao carregar produtos');
         }
     }
 
     async loadStats() {
         try {
-            // 🔥 STATS RÁPIDO - Não bloqueia a interface
-            const stats = await fastFetch('/api/admin/stats', {
+            const response = await fetch('/api/admin/stats', {
                 headers: getAuthHeaders()
             });
+            
+            if (!response.ok) throw new Error('Erro ao carregar estatísticas');
+            
+            const stats = await response.json();
             this.updateStats(stats);
         } catch (error) {
-            console.error('Erro stats:', error);
-            // 🔥 CALCULAR STATS LOCALMENTE se API falhar
-            this.calculateLocalStats();
+            console.error('Erro:', error);
         }
-    }
-
-    calculateLocalStats() {
-        const totalProducts = this.products.length;
-        const totalValue = this.products.reduce((sum, product) => 
-            sum + (product.price * (product.stock || 0)), 0
-        );
-        const totalCategories = new Set(this.products.map(p => p.category)).size;
-
-        this.updateStats({
-            totalProducts,
-            totalValue,
-            totalCategories
-        });
     }
 
     renderProducts() {
         const tbody = document.getElementById('admin-products-list');
         if (!tbody) return;
         
-        // 🔥 RENDERIZAÇÃO RÁPIDA com template string
+        tbody.innerHTML = '';
+
         if (this.products.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="text-center">
-                        <i class="fas fa-box-open"></i>
+                    <td colspan="7" style="text-align: center; padding: 2rem; color: #666;">
+                        <i class="fas fa-box-open" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
                         Nenhum produto cadastrado
                     </td>
                 </tr>
@@ -145,17 +94,20 @@ class ProductManager {
             return;
         }
 
-        tbody.innerHTML = this.products.map(product => `
-            <tr>
+        this.products.forEach(product => {
+            // 🔥 CORREÇÃO: Obter o nome da categoria corretamente
+            const categoryName = this.getCategoryName(product.category_id);
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
                 <td>
-                    <img src="${product.image}" alt="${product.name}" 
-                         class="product-image-admin"
+                    <img src="${product.image}" alt="${product.name}" class="product-image-admin" 
                          onerror="this.src='https://via.placeholder.com/60x60?text=Imagem'">
                 </td>
-                <td>${this.escapeHtml(product.name)}</td>
+                <td>${product.name}</td>
                 <td>R$ ${parseFloat(product.price).toFixed(2)}</td>
-                <td>${this.escapeHtml(product.category_name || product.category || 'Geral')}</td>
-                <td>${product.stock || 0}</td>
+                <td>${categoryName}</td> <!-- 🔥 AQUI ESTÁ A CORREÇÃO -->
+                <td>${product.stock}</td>
                 <td>
                     <span class="status-badge ${product.status === 'active' ? 'active' : 'inactive'}">
                         ${product.status === 'active' ? 'Ativo' : 'Inativo'}
@@ -169,15 +121,15 @@ class ProductManager {
                         <i class="fas fa-trash"></i> Excluir
                     </button>
                 </td>
-            </tr>
-        `).join('');
+            `;
+            tbody.appendChild(row);
+        });
     }
 
-    // 🔥 ESCAPE HTML para segurança
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+    // 🔥 NOVA FUNÇÃO: Converter category_id para nome da categoria
+    getCategoryName(categoryId) {
+        const category = this.categories.find(cat => cat.id === categoryId);
+        return category ? category.name : 'Geral';
     }
 
     setupEventListeners() {
@@ -192,7 +144,7 @@ class ProductManager {
             this.saveProduct();
         });
 
-        // Preview de Imagem - DELEGAÇÃO para performance
+        // Preview de Imagem
         document.getElementById('product-image').addEventListener('change', (e) => {
             this.previewImage(e.target.files[0]);
         });
@@ -202,13 +154,9 @@ class ProductManager {
             this.closeProductModal();
         });
 
-        // 🔥 BUSCA OTIMIZADA com debounce
-        let searchTimeout;
+        // Busca
         document.getElementById('admin-search').addEventListener('input', (e) => {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                this.searchProducts(e.target.value);
-            }, 300); // 300ms debounce
+            this.searchProducts(e.target.value);
         });
 
         // Logout
@@ -216,24 +164,29 @@ class ProductManager {
             e.preventDefault();
             if (confirm('Deseja sair do painel administrativo?')) {
                 localStorage.removeItem('adminToken');
+                localStorage.removeItem('adminUser');
                 window.location.href = 'admin.html';
             }
         });
 
-        // Outros botões
-        ['manage-categories-btn', 'update-prices-btn', 'bulk-upload-btn'].forEach(id => {
-            const btn = document.getElementById(id);
-            if (btn) {
-                btn.addEventListener('click', () => {
-                    alert('Funcionalidade em desenvolvimento!');
-                });
-            }
+        // Outros botões de ação
+        document.getElementById('manage-categories-btn').addEventListener('click', () => {
+            alert('Funcionalidade de gerenciar categorias em desenvolvimento!');
+        });
+
+        document.getElementById('update-prices-btn').addEventListener('click', () => {
+            alert('Funcionalidade de alterar preços em massa em desenvolvimento!');
+        });
+
+        document.getElementById('bulk-upload-btn').addEventListener('click', () => {
+            alert('Funcionalidade de upload em massa em desenvolvimento!');
         });
 
         // Modais
         document.querySelectorAll('.close-modal').forEach(button => {
             button.addEventListener('click', (e) => {
-                e.target.closest('.modal').style.display = 'none';
+                const modal = e.target.closest('.modal');
+                modal.style.display = 'none';
             });
         });
 
@@ -249,11 +202,12 @@ class ProductManager {
         const modal = document.getElementById('product-modal');
         const title = document.getElementById('product-modal-title');
         
-        // 🔥 PREENCHER CATEGORIAS RAPIDAMENTE
+        // Preencher select de categorias
         const categorySelect = document.getElementById('product-category');
-        categorySelect.innerHTML = this.categories.map(cat => 
-            `<option value="${cat.id}">${cat.name}</option>`
-        ).join('');
+        categorySelect.innerHTML = '<option value="">Selecione...</option>';
+        this.categories.forEach(category => {
+            categorySelect.innerHTML += `<option value="${category.id}">${category.name}</option>`;
+        });
         
         if (product) {
             title.textContent = 'Editar Produto';
@@ -273,18 +227,16 @@ class ProductManager {
 
     fillProductForm(product) {
         this.currentProductId = product.id;
-        document.getElementById('product-name').value = product.name || '';
-        document.getElementById('product-price').value = product.price || '';
-        document.getElementById('product-category').value = product.category_id || product.category || '';
-        document.getElementById('product-stock').value = product.stock || 0;
-        document.getElementById('product-status').value = product.status || 'active';
+        document.getElementById('product-name').value = product.name;
+        document.getElementById('product-price').value = product.price;
+        document.getElementById('product-category').value = product.category_id;
+        document.getElementById('product-stock').value = product.stock;
+        document.getElementById('product-status').value = product.status;
         document.getElementById('product-description').value = product.description || '';
         
-        // Preview da imagem
+        // Preview da imagem existente
         const preview = document.getElementById('image-preview');
-        if (preview && product.image) {
-            preview.innerHTML = `<img src="${product.image}" alt="Preview" style="max-width: 100%; max-height: 200px; border-radius: 8px;">`;
-        }
+        preview.innerHTML = `<img src="${product.image}" alt="Preview">`;
     }
 
     clearProductForm() {
@@ -294,154 +246,163 @@ class ProductManager {
     }
 
     previewImage(file) {
-        if (!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const preview = document.getElementById('image-preview');
-            preview.innerHTML = `<img src="${e.target.result}" alt="Preview" style="max-width: 100%; max-height: 200px; border-radius: 8px;">`;
-        };
-        reader.readAsDataURL(file);
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const preview = document.getElementById('image-preview');
+                preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+            };
+            reader.readAsDataURL(file);
+        }
     }
 
     async saveProduct() {
-        // 🔥 BLOQUEAR BOTÃO durante salvamento
-        const submitBtn = document.querySelector('#product-form button[type="submit"]');
-        const originalText = submitBtn.innerHTML;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
-        submitBtn.disabled = true;
+        const formData = {
+            name: document.getElementById('product-name').value,
+            price: parseFloat(document.getElementById('product-price').value),
+            category_id: parseInt(document.getElementById('product-category').value),
+            stock: parseInt(document.getElementById('product-stock').value),
+            status: document.getElementById('product-status').value,
+            description: document.getElementById('product-description').value
+        };
 
-        try {
-            const formData = {
-                name: document.getElementById('product-name').value,
-                price: parseFloat(document.getElementById('product-price').value),
-                category_id: parseInt(document.getElementById('product-category').value),
-                stock: parseInt(document.getElementById('product-stock').value),
-                status: document.getElementById('product-status').value,
-                description: document.getElementById('product-description').value
+        // Validar dados
+        if (!formData.name || !formData.price || !formData.category_id) {
+            alert('Por favor, preencha todos os campos obrigatórios!');
+            return;
+        }
+
+        // Simular upload de imagem (em produção, você enviaria para o servidor)
+        const imageFile = document.getElementById('product-image').files[0];
+        if (imageFile) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                formData.image = e.target.result;
+                this.finalizeSave(formData);
             };
-
-            // Validação rápida
-            if (!formData.name || !formData.price || !formData.category_id) {
-                throw new Error('Preencha nome, preço e categoria');
-            }
-
-            // Processar imagem se houver
-            const imageFile = document.getElementById('product-image').files[0];
-            if (imageFile) {
-                formData.image = await this.processImage(imageFile);
-            } else if (this.currentProductId) {
-                const existing = this.products.find(p => p.id === this.currentProductId);
-                formData.image = existing?.image;
-            }
-
-            // 🔥 SALVAMENTO RÁPIDO na API
-            let response;
+            reader.readAsDataURL(imageFile);
+        } else {
+            // Manter imagem existente se estiver editando
             if (this.currentProductId) {
-                response = await fastFetch(`/api/admin/products/${this.currentProductId}`, {
+                const existingProduct = this.products.find(p => p.id === this.currentProductId);
+                formData.image = existingProduct.image;
+            } else {
+                formData.image = 'https://via.placeholder.com/300x300?text=Produto+Sem+Imagem';
+            }
+            this.finalizeSave(formData);
+        }
+    }
+
+    async finalizeSave(formData) {
+        try {
+            let response;
+            
+            if (this.currentProductId) {
+                // Editar produto existente
+                response = await fetch(`/api/admin/products/${this.currentProductId}`, {
                     method: 'PUT',
                     headers: getAuthHeaders(),
                     body: JSON.stringify(formData)
                 });
             } else {
-                response = await fastFetch('/api/admin/products', {
+                // Adicionar novo produto
+                response = await fetch('/api/admin/products', {
                     method: 'POST',
                     headers: getAuthHeaders(),
                     body: JSON.stringify(formData)
                 });
             }
 
-            // 🔥 INVALIDAR CACHE - forçar recarregamento
-            productsCache = null;
-            
+            if (!response.ok) {
+                throw new Error('Erro ao salvar produto');
+            }
+
             await this.loadProducts();
             await this.loadStats();
             this.closeProductModal();
             
-            this.showNotification('✅ Produto salvo com sucesso!');
-            
+            alert('Produto salvo com sucesso!');
         } catch (error) {
-            console.error('Erro ao salvar:', error);
-            this.showError(`Erro ao salvar: ${error.message}`);
-        } finally {
-            // 🔥 RESTAURAR BOTÃO
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
+            console.error('Erro:', error);
+            alert('Erro ao salvar produto');
         }
-    }
-
-    processImage(file) {
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.readAsDataURL(file);
-        });
     }
 
     editProduct(id) {
         const product = this.products.find(p => p.id === id);
-        if (product) this.openProductModal(product);
+        if (product) {
+            this.openProductModal(product);
+        }
     }
 
     confirmDelete(id) {
         const product = this.products.find(p => p.id === id);
-        if (!product) return;
+        if (product) {
+            document.getElementById('confirm-message').textContent = 
+                `Tem certeza que deseja excluir o produto "${product.name}"?`;
+            
+            const modal = document.getElementById('confirm-modal');
+            modal.style.display = 'block';
 
-        document.getElementById('confirm-message').textContent = 
-            `Tem certeza que deseja excluir "${product.name}"?`;
-        
-        const modal = document.getElementById('confirm-modal');
-        modal.style.display = 'block';
+            document.getElementById('confirm-delete').onclick = () => {
+                this.deleteProduct(id);
+                modal.style.display = 'none';
+            };
 
-        document.getElementById('confirm-delete').onclick = () => {
-            this.deleteProduct(id);
-            modal.style.display = 'none';
-        };
+            // Botão cancelar no modal de confirmação
+            modal.querySelector('.btn-cancel').onclick = () => {
+                modal.style.display = 'none';
+            };
+        }
     }
 
     async deleteProduct(id) {
         try {
-            await fastFetch(`/api/admin/products/${id}`, {
+            const response = await fetch(`/api/admin/products/${id}`, {
                 method: 'DELETE',
                 headers: getAuthHeaders()
             });
 
-            // 🔥 INVALIDAR CACHE
-            productsCache = null;
-            
+            if (!response.ok) {
+                throw new Error('Erro ao excluir produto');
+            }
+
             await this.loadProducts();
             await this.loadStats();
-            this.showNotification('🗑️ Produto excluído com sucesso!');
+            alert('Produto excluído com sucesso!');
         } catch (error) {
-            console.error('Erro ao excluir:', error);
-            this.showError('Erro ao excluir produto');
+            console.error('Erro:', error);
+            alert('Erro ao excluir produto');
         }
     }
 
     searchProducts(query) {
-        if (!query.trim()) {
-            this.renderProducts();
-            return;
-        }
-
-        const filtered = this.products.filter(product => 
-            product.name.toLowerCase().includes(query.toLowerCase()) ||
-            (product.category_name && product.category_name.toLowerCase().includes(query.toLowerCase()))
-        );
+        const filteredProducts = this.products.filter(product => {
+            const categoryName = this.getCategoryName(product.category_id);
+            return (
+                product.name.toLowerCase().includes(query.toLowerCase()) ||
+                categoryName.toLowerCase().includes(query.toLowerCase())
+            );
+        });
         
         const tbody = document.getElementById('admin-products-list');
         if (!tbody) return;
         
-        tbody.innerHTML = filtered.length ? filtered.map(product => `
-            <tr>
+        tbody.innerHTML = '';
+
+        filteredProducts.forEach(product => {
+            const categoryName = this.getCategoryName(product.category_id);
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
                 <td>
                     <img src="${product.image}" alt="${product.name}" class="product-image-admin"
                          onerror="this.src='https://via.placeholder.com/60x60?text=Imagem'">
                 </td>
-                <td>${this.escapeHtml(product.name)}</td>
+                <td>${product.name}</td>
                 <td>R$ ${parseFloat(product.price).toFixed(2)}</td>
-                <td>${this.escapeHtml(product.category_name || product.category || 'Geral')}</td>
-                <td>${product.stock || 0}</td>
+                <td>${categoryName}</td> <!-- 🔥 AQUI TAMBÉM -->
+                <td>${product.stock}</td>
                 <td>
                     <span class="status-badge ${product.status === 'active' ? 'active' : 'inactive'}">
                         ${product.status === 'active' ? 'Ativo' : 'Inativo'}
@@ -455,15 +416,9 @@ class ProductManager {
                         <i class="fas fa-trash"></i> Excluir
                     </button>
                 </td>
-            </tr>
-        `).join('') : `
-            <tr>
-                <td colspan="7" class="text-center">
-                    <i class="fas fa-search"></i>
-                    Nenhum produto encontrado
-                </td>
-            </tr>
-        `;
+            `;
+            tbody.appendChild(row);
+        });
     }
 
     updateStats(stats) {
@@ -471,39 +426,7 @@ class ProductManager {
         document.getElementById('total-value').textContent = `R$ ${stats.totalValue.toFixed(2)}`;
         document.getElementById('total-categories').textContent = stats.totalCategories;
     }
-
-    showNotification(message) {
-        this.showMessage(message, '#28a745');
-    }
-
-    showError(message) {
-        this.showMessage(message, '#dc3545');
-    }
-
-    showMessage(message, color) {
-        const notification = document.createElement('div');
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: ${color};
-            color: white;
-            padding: 1rem 1.5rem;
-            border-radius: 5px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            z-index: 10000;
-        `;
-        notification.textContent = message;
-        
-        document.body.appendChild(notification);
-        
-        setTimeout(() => {
-            if (document.body.contains(notification)) {
-                document.body.removeChild(notification);
-            }
-        }, 3000);
-    }
 }
 
-// Inicializar
+// Inicializar o gerenciador de produtos
 const productManager = new ProductManager();
