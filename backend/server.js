@@ -6,8 +6,6 @@ import cors from 'cors';
 import jwt from 'jsonwebtoken';
 
 import bcrypt from 'bcryptjs';
-const compression = require('compression');
-app.use(compression()); // Adicionar isso antes das rotas
 
 // Para __dirname em ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -38,44 +36,17 @@ app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true })); // ← ADICIONE ESTA LINHA
 app.use(express.static(path.join(__dirname, '../frontend')));
 const JWT_SECRET = process.env.JWT_SECRET || 'seu_jwt_secret_super_seguro_aqui';
-// Middleware de logging
-app.use((req, res, next) => {
-  const start = Date.now();
-  res.on('finish', () => {
-    const duration = Date.now() - start;
-    console.log(`${req.method} ${req.url} - ${duration}ms`);
-  });
-  next();
-});
-// Middleware de autenticação SIMPLIFICADO para teste
- const jwt = require('jsonwebtoken');
 
+// Middleware de autenticação SIMPLIFICADO para teste
 const authenticateToken = async (req, res, next) => {
     console.log('🔐 Verificando autenticação...');
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
-        console.log('❌ Token não fornecido');
-        return res.status(401).json({ error: 'Acesso negado. Token necessário.' });
-    }
-
-    try {
-        const verified = jwt.verify(token, process.env.JWT_SECRET || 'seu_segredo_aqui');
-        req.user = verified;
-        console.log('✅ Token válido para usuário:', verified.id || verified.email);
-        next();
-    } catch (error) {
-        console.log('❌ Token inválido:', error.message);
-        return res.status(403).json({ error: 'Token inválido ou expirado.' });
-    }
-};
-    if (!token) {
         console.log('⚠️  Token não fornecido, continuando como visitante');
         req.user = null;
         return next();
-        // Em vez de buscar todos os produtos de uma vez, usar paginação
-
     }
 
     try {
@@ -98,8 +69,8 @@ const authenticateToken = async (req, res, next) => {
     } catch (error) {
         console.log('❌ Token inválido:', error.message);
         return res.status(403).json({ error: 'Token inválido' });
-}
-
+    }
+};
 
 // Testar conexão com Supabase
 async function testSupabaseConnection() {
