@@ -396,7 +396,7 @@ class ProductManager {
         document.getElementById('total-value').textContent = `R$ ${stats.totalValue.toFixed(2)}`;
         document.getElementById('total-categories').textContent = stats.totalCategories;
     }
-}
+}''
 
 // Inicializar o gerenciador de produtos
 const productManager = new ProductManager();
