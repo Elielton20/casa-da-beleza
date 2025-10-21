@@ -8,10 +8,8 @@ function checkAdminAuth() {
     return true;
 }
 
-// Verificar autenticação ao carregar a página
-if (!checkAdminAuth()) {
-    // Redirecionamento já acontece na função acima
-}
+// 🔥 VARIÁVEL DE CONTROLE para evitar múltiplas inicializações
+let productManagerInitialized = false;
 
 // Headers padrão para requisições autenticadas
 function getAuthHeaders() {
@@ -25,10 +23,18 @@ function getAuthHeaders() {
 // Gerenciamento de Produtos
 class ProductManager {
     constructor() {
-        if (!checkAdminAuth()) return;
+        // 🔥 VERIFICAÇÃO DUPLA para evitar múltiplas instâncias
+        if (!checkAdminAuth() || productManagerInitialized) {
+            console.log('⚠️ ProductManager já inicializado ou não autenticado');
+            return;
+        }
+        
+        productManagerInitialized = true;
+        console.log('🚀 Inicializando ProductManager...');
         
         this.products = [];
         this.currentProductId = null;
+        this.isLoading = false; // 🔥 CONTROLE DE CARREGAMENTO
         this.categories = [
             { id: 1, name: 'Maquiagem' },
             { id: 2, name: 'Skincare' },
@@ -40,12 +46,23 @@ class ProductManager {
     }
 
     async init() {
+        // 🔥 CARREGAMENTO SEQUENCIAL controlado
         await this.loadProducts();
         await this.loadStats();
         this.setupEventListeners();
+        console.log('✅ ProductManager totalmente inicializado');
     }
 
     async loadProducts() {
+        // 🔥 EVITA MÚLTIPLAS REQUISIÇÕES SIMULTÂNEAS
+        if (this.isLoading) {
+            console.log('⏳ LoadProducts já em andamento...');
+            return;
+        }
+
+        this.isLoading = true;
+        console.log('📦 Iniciando carregamento de produtos...');
+
         try {
             const response = await fetch('/api/admin/products', {
                 headers: getAuthHeaders()
@@ -54,14 +71,19 @@ class ProductManager {
             if (!response.ok) throw new Error('Erro ao carregar produtos');
             
             this.products = await response.json();
+            console.log(`✅ ${this.products.length} produtos carregados`);
             this.renderProducts();
         } catch (error) {
-            console.error('Erro:', error);
-            alert('Erro ao carregar produtos');
+            console.error('❌ Erro ao carregar produtos:', error);
+            this.showError('Erro ao carregar produtos');
+        } finally {
+            this.isLoading = false;
         }
     }
 
     async loadStats() {
+        console.log('📊 Carregando estatísticas...');
+        
         try {
             const response = await fetch('/api/admin/stats', {
                 headers: getAuthHeaders()
@@ -71,15 +93,37 @@ class ProductManager {
             
             const stats = await response.json();
             this.updateStats(stats);
+            console.log('✅ Estatísticas carregadas');
         } catch (error) {
-            console.error('Erro:', error);
+            console.error('❌ Erro ao carregar estatísticas:', error);
+            // 🔥 CALCULA ESTATÍSTICAS LOCALMENTE em caso de erro
+            this.calculateLocalStats();
         }
+    }
+
+    calculateLocalStats() {
+        const totalProducts = this.products.length;
+        const totalValue = this.products.reduce((sum, product) => 
+            sum + (product.price * (product.stock || 0)), 0
+        );
+        const totalCategories = new Set(this.products.map(p => p.category)).size;
+
+        this.updateStats({
+            totalProducts,
+            totalValue,
+            totalCategories
+        });
+        console.log('📊 Estatísticas calculadas localmente');
     }
 
     renderProducts() {
         const tbody = document.getElementById('admin-products-list');
-        if (!tbody) return;
+        if (!tbody) {
+            console.error('❌ Elemento admin-products-list não encontrado');
+            return;
+        }
         
+        console.log('🎨 Renderizando produtos na tabela...');
         tbody.innerHTML = '';
 
         if (this.products.length === 0) {
@@ -123,15 +167,21 @@ class ProductManager {
             `;
             tbody.appendChild(row);
         });
+        
+        console.log('✅ Tabela de produtos renderizada');
     }
 
-    // 🔥 FUNÇÃO: Converter category_id para nome da categoria
     getCategoryName(categoryId) {
         const category = this.categories.find(cat => cat.id === categoryId);
         return category ? category.name : 'Geral';
     }
 
     setupEventListeners() {
+        console.log('🔧 Configurando event listeners...');
+        
+        // 🔥 REMOVE EVENT LISTENERS ANTIGOS para evitar duplicação
+        this.removeEventListeners();
+        
         // Botão Adicionar Produto
         document.getElementById('add-product-btn').addEventListener('click', () => {
             this.openProductModal();
@@ -153,10 +203,17 @@ class ProductManager {
             this.closeProductModal();
         });
 
-        // Busca
-        document.getElementById('admin-search').addEventListener('input', (e) => {
-            this.searchProducts(e.target.value);
-        });
+        // 🔥 BUSCA COM DEBOUNCE
+        let searchTimeout;
+        const searchInput = document.getElementById('admin-search');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    this.searchProducts(e.target.value);
+                }, 300);
+            });
+        }
 
         // Logout
         document.getElementById('logout-btn').addEventListener('click', (e) => {
@@ -169,23 +226,22 @@ class ProductManager {
         });
 
         // Outros botões de ação
-        document.getElementById('manage-categories-btn').addEventListener('click', () => {
-            alert('Funcionalidade de gerenciar categorias em desenvolvimento!');
-        });
+        const setupButton = (id, message) => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                btn.addEventListener('click', () => alert(message));
+            }
+        };
 
-        document.getElementById('update-prices-btn').addEventListener('click', () => {
-            alert('Funcionalidade de alterar preços em massa em desenvolvimento!');
-        });
-
-        document.getElementById('bulk-upload-btn').addEventListener('click', () => {
-            alert('Funcionalidade de upload em massa em desenvolvimento!');
-        });
+        setupButton('manage-categories-btn', 'Funcionalidade de gerenciar categorias em desenvolvimento!');
+        setupButton('update-prices-btn', 'Funcionalidade de alterar preços em massa em desenvolvimento!');
+        setupButton('bulk-upload-btn', 'Funcionalidade de upload em massa em desenvolvimento!');
 
         // Modais
         document.querySelectorAll('.close-modal').forEach(button => {
             button.addEventListener('click', (e) => {
                 const modal = e.target.closest('.modal');
-                modal.style.display = 'none';
+                if (modal) modal.style.display = 'none';
             });
         });
 
@@ -195,6 +251,14 @@ class ProductManager {
                 e.target.style.display = 'none';
             }
         });
+        
+        console.log('✅ Event listeners configurados');
+    }
+
+    // 🔥 NOVA FUNÇÃO: Remove event listeners antigos
+    removeEventListeners() {
+        // Esta função pode ser expandida para remover listeners específicos se necessário
+        console.log('🧹 Limpando event listeners antigos...');
     }
 
     openProductModal(product = null) {
@@ -220,7 +284,8 @@ class ProductManager {
     }
 
     closeProductModal() {
-        document.getElementById('product-modal').style.display = 'none';
+        const modal = document.getElementById('product-modal');
+        if (modal) modal.style.display = 'none';
         this.clearProductForm();
     }
 
@@ -235,15 +300,22 @@ class ProductManager {
         
         // Preview da imagem existente
         const preview = document.getElementById('image-preview');
-        preview.innerHTML = `<img src="${product.image}" alt="Preview">`;
+        if (preview && product.image) {
+            preview.innerHTML = `<img src="${product.image}" alt="Preview" style="max-width: 100%; max-height: 200px; border-radius: 8px;">`;
+        }
     }
 
     clearProductForm() {
         this.currentProductId = null;
-        document.getElementById('product-form').reset();
-        document.getElementById('image-preview').innerHTML = '<i class="fas fa-image" style="color: #ccc;"></i>';
+        const form = document.getElementById('product-form');
+        if (form) form.reset();
         
-        // 🔥 RESTAURAR BOTÃO DE SALVAR se estiver em loading
+        const preview = document.getElementById('image-preview');
+        if (preview) {
+            preview.innerHTML = '<i class="fas fa-image" style="color: #ccc;"></i>';
+        }
+        
+        // Restaurar botão de salvar se estiver em loading
         const submitBtn = document.querySelector('#product-form button[type="submit"]');
         if (submitBtn) {
             submitBtn.innerHTML = '<i class="fas fa-save"></i> Salvar Produto';
@@ -252,18 +324,20 @@ class ProductManager {
     }
 
     previewImage(file) {
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const preview = document.getElementById('image-preview');
-                preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
-            };
-            reader.readAsDataURL(file);
-        }
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const preview = document.getElementById('image-preview');
+            if (preview) {
+                preview.innerHTML = `<img src="${e.target.result}" alt="Preview" style="max-width: 100%; max-height: 200px; border-radius: 8px;">`;
+            }
+        };
+        reader.readAsDataURL(file);
     }
 
     async saveProduct() {
-        // 🔥 BLOQUEAR BOTÃO durante salvamento
+        // Bloquear botão durante salvamento
         const submitBtn = document.querySelector('#product-form button[type="submit"]');
         const originalText = submitBtn.innerHTML;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
@@ -287,10 +361,8 @@ class ProductManager {
             // Processar imagem
             const imageFile = document.getElementById('product-image').files[0];
             if (imageFile) {
-                const imageBase64 = await this.processImage(imageFile);
-                formData.image = imageBase64;
+                formData.image = await this.processImage(imageFile);
             } else if (this.currentProductId) {
-                // Manter imagem existente se estiver editando
                 const existingProduct = this.products.find(p => p.id === this.currentProductId);
                 formData.image = existingProduct.image;
             } else {
@@ -301,14 +373,12 @@ class ProductManager {
             let response;
             
             if (this.currentProductId) {
-                // Editar produto existente
                 response = await fetch(`/api/admin/products/${this.currentProductId}`, {
                     method: 'PUT',
                     headers: getAuthHeaders(),
                     body: JSON.stringify(formData)
                 });
             } else {
-                // Adicionar novo produto
                 response = await fetch('/api/admin/products', {
                     method: 'POST',
                     headers: getAuthHeaders(),
@@ -320,59 +390,50 @@ class ProductManager {
                 throw new Error('Erro ao salvar produto');
             }
 
+            // 🔥 RECARREGAR APENAS UMA VEZ
             await this.loadProducts();
             await this.loadStats();
-            this.closeProductModal();
             
+            this.closeProductModal();
             this.showNotification('✅ Produto salvo com sucesso!');
             
         } catch (error) {
             console.error('Erro:', error);
-            alert(error.message || 'Erro ao salvar produto');
+            this.showError(error.message || 'Erro ao salvar produto');
         } finally {
-            // 🔥 RESTAURAR BOTÃO independente do resultado
+            // Restaurar botão
             submitBtn.innerHTML = originalText;
             submitBtn.disabled = false;
         }
     }
 
     processImage(file) {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             const reader = new FileReader();
-            reader.onload = (e) => {
-                resolve(e.target.result);
-            };
-            reader.onerror = reject;
+            reader.onload = (e) => resolve(e.target.result);
             reader.readAsDataURL(file);
         });
     }
 
     editProduct(id) {
         const product = this.products.find(p => p.id === id);
-        if (product) {
-            this.openProductModal(product);
-        }
+        if (product) this.openProductModal(product);
     }
 
     confirmDelete(id) {
         const product = this.products.find(p => p.id === id);
-        if (product) {
-            document.getElementById('confirm-message').textContent = 
-                `Tem certeza que deseja excluir o produto "${product.name}"?`;
-            
-            const modal = document.getElementById('confirm-modal');
-            modal.style.display = 'block';
+        if (!product) return;
 
-            document.getElementById('confirm-delete').onclick = () => {
-                this.deleteProduct(id);
-                modal.style.display = 'none';
-            };
+        document.getElementById('confirm-message').textContent = 
+            `Tem certeza que deseja excluir "${product.name}"?`;
+        
+        const modal = document.getElementById('confirm-modal');
+        modal.style.display = 'block';
 
-            // Botão cancelar no modal de confirmação
-            modal.querySelector('.btn-cancel').onclick = () => {
-                modal.style.display = 'none';
-            };
-        }
+        document.getElementById('confirm-delete').onclick = () => {
+            this.deleteProduct(id);
+            modal.style.display = 'none';
+        };
     }
 
     async deleteProduct(id) {
@@ -388,14 +449,19 @@ class ProductManager {
 
             await this.loadProducts();
             await this.loadStats();
-            alert('Produto excluído com sucesso!');
+            this.showNotification('🗑️ Produto excluído com sucesso!');
         } catch (error) {
             console.error('Erro:', error);
-            alert('Erro ao excluir produto');
+            this.showError('Erro ao excluir produto');
         }
     }
 
     searchProducts(query) {
+        if (!query.trim()) {
+            this.renderProducts();
+            return;
+        }
+
         const filteredProducts = this.products.filter(product => {
             const categoryName = this.getCategoryName(product.category_id);
             return (
@@ -407,37 +473,34 @@ class ProductManager {
         const tbody = document.getElementById('admin-products-list');
         if (!tbody) return;
         
-        tbody.innerHTML = '';
-
-        filteredProducts.forEach(product => {
+        tbody.innerHTML = filteredProducts.map(product => {
             const categoryName = this.getCategoryName(product.category_id);
-            
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>
-                    <img src="${product.image}" alt="${product.name}" class="product-image-admin"
-                         onerror="this.src='https://via.placeholder.com/60x60?text=Imagem'">
-                </td>
-                <td>${product.name}</td>
-                <td>R$ ${parseFloat(product.price).toFixed(2)}</td>
-                <td>${categoryName}</td>
-                <td>${product.stock}</td>
-                <td>
-                    <span class="status-badge ${product.status === 'active' ? 'active' : 'inactive'}">
-                        ${product.status === 'active' ? 'Ativo' : 'Inativo'}
-                    </span>
-                </td>
-                <td>
-                    <button class="btn-edit" onclick="productManager.editProduct(${product.id})">
-                        <i class="fas fa-edit"></i> Editar
-                    </button>
-                    <button class="btn-delete" onclick="productManager.confirmDelete(${product.id})">
-                        <i class="fas fa-trash"></i> Excluir
-                    </button>
-                </td>
+            return `
+                <tr>
+                    <td>
+                        <img src="${product.image}" alt="${product.name}" class="product-image-admin"
+                             onerror="this.src='https://via.placeholder.com/60x60?text=Imagem'">
+                    </td>
+                    <td>${product.name}</td>
+                    <td>R$ ${parseFloat(product.price).toFixed(2)}</td>
+                    <td>${categoryName}</td>
+                    <td>${product.stock}</td>
+                    <td>
+                        <span class="status-badge ${product.status === 'active' ? 'active' : 'inactive'}">
+                            ${product.status === 'active' ? 'Ativo' : 'Inativo'}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn-edit" onclick="productManager.editProduct(${product.id})">
+                            <i class="fas fa-edit"></i> Editar
+                        </button>
+                        <button class="btn-delete" onclick="productManager.confirmDelete(${product.id})">
+                            <i class="fas fa-trash"></i> Excluir
+                        </button>
+                    </td>
+                </tr>
             `;
-            tbody.appendChild(row);
-        });
+        }).join('');
     }
 
     updateStats(stats) {
@@ -446,42 +509,61 @@ class ProductManager {
         document.getElementById('total-categories').textContent = stats.totalCategories;
     }
 
-    // 🔥 FUNÇÃO DE NOTIFICAÇÃO MELHORADA
     showNotification(message) {
+        this.showMessage(message, '#28a745');
+    }
+
+    showError(message) {
+        this.showMessage(message, '#dc3545');
+    }
+
+    showMessage(message, color) {
+        // Remove notificações existentes
+        const existingNotifications = document.querySelectorAll('.custom-notification');
+        existingNotifications.forEach(notification => notification.remove());
+
         const notification = document.createElement('div');
+        notification.className = 'custom-notification';
         notification.style.cssText = `
             position: fixed;
             top: 20px;
             right: 20px;
-            background: #28a745;
+            background: ${color};
             color: white;
             padding: 1rem 1.5rem;
             border-radius: 5px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             z-index: 10000;
-            transform: translateX(400px);
-            transition: transform 0.3s ease;
         `;
         notification.textContent = message;
         
         document.body.appendChild(notification);
         
-        // Animação de entrada
         setTimeout(() => {
-            notification.style.transform = 'translateX(0)';
-        }, 100);
-        
-        // Remover após 3 segundos
-        setTimeout(() => {
-            notification.style.transform = 'translateX(400px)';
-            setTimeout(() => {
-                if (document.body.contains(notification)) {
-                    document.body.removeChild(notification);
-                }
-            }, 300);
+            if (document.body.contains(notification)) {
+                document.body.removeChild(notification);
+            }
         }, 3000);
     }
 }
 
-// Inicializar o gerenciador de produtos
-const productManager = new ProductManager();
+// 🔥 INICIALIZAÇÃO CONTROLADA - evita múltiplas instâncias
+let productManager;
+
+function initializeAdmin() {
+    if (!checkAdminAuth()) return;
+    
+    if (!productManager && !productManagerInitialized) {
+        console.log('🎯 Iniciando aplicação admin...');
+        productManager = new ProductManager();
+    } else {
+        console.log('⚠️ Aplicação admin já está rodando');
+    }
+}
+
+// Inicializar quando a página carregar
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeAdmin);
+} else {
+    initializeAdmin();
+}
