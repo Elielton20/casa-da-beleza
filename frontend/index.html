@@ -337,68 +337,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     <script>
     // ========== INICIALIZAÇÃO DO SUPABASE ==========
-    // SUBSITUA COM SUAS CREDENCIAIS REAIS:
-    const supabaseUrl = 'https://djpfhgbxspibucvacxpt.supabase.co'; // SUA URL
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqcGZoZ2J4c3BpYnVjdmFjeHB0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDg3NzMwNCwiZXhwIjoyMDc2NDUzMzA0fQ.dziOb3cIrlGiiM0PuJABuFioOf9BgnMcABQpM27N3qc'; // SUA CHAVE
+    const supabaseUrl = 'https://djpfhgbxspibucvacxpt.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqcGZoZ2J4c3BpYnVjdmFjeHB0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDg3NzMwNCwiZXhwIjoyMDc2NDUzMzA0fQ.dziOb3cIrlGiiM0PuJABuFioOf9BgnMcABQpM27N3qc';
     const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-
-    // Dados iniciais dos produtos (fallback) - MANTIDO
-    const initialProducts = [
-        {
-            id: 1,
-            name: "Base Líquida Professional",
-            price: 89.90,
-            category: "Maquiagem",
-            image: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=500",
-            rating: 4.5,
-            reviewCount: 120
-        },
-        {
-            id: 2,
-            name: "Hidratante Facial com Vitamina C",
-            price: 129.90,
-            category: "Skincare",
-            image: "https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=500",
-            rating: 4.8,
-            reviewCount: 89
-        },
-        {
-            id: 3,
-            name: "Shampoo Reconstruidor",
-            price: 45.90,
-            category: "Cabelos",
-            image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=500",
-            rating: 4.3,
-            reviewCount: 156
-        },
-        {
-            id: 4,
-            name: "Perfume Flor do Campo",
-            price: 159.90,
-            category: "Perfumes",
-            image: "https://images.unsplash.com/photo-1541643600914-78b084683601?w=500",
-            rating: 4.6,
-            reviewCount: 203
-        },
-        {
-            id: 5,
-            name: "Óleo Corporal Relaxante",
-            price: 67.90,
-            category: "Corpo e Banho",
-            image: "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=500",
-            rating: 4.4,
-            reviewCount: 78
-        },
-        {
-            id: 6,
-            name: "Paleta de Sombras Profissionais",
-            price: 139.90,
-            category: "Maquiagem",
-            image: "https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?w=500",
-            rating: 4.7,
-            reviewCount: 145
-        }
-    ];
 
     // ========== VARIÁVEIS GLOBAIS ==========
     let cart = [];
@@ -408,12 +349,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ========== FUNÇÕES PRINCIPAIS CORRIGIDAS ==========
 
-    // Função para carregar produtos - VERSÃO CORRIGIDA
+    // Função para carregar produtos - SOMENTE DO SUPABASE
     async function loadProductsFromStorage() {
         try {
-            console.log('🔄 Tentando carregar produtos do Supabase...');
+            console.log('🔄 Carregando produtos do Supabase...');
             
-            // Tenta carregar do Supabase primeiro
+            // Carrega produtos do Supabase
             const { data: products, error } = await supabase
                 .from('products')
                 .select(`
@@ -426,7 +367,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 `)
                 .order('name');
 
-            if (!error && products && products.length > 0) {
+            if (error) {
+                console.error('❌ Erro ao carregar produtos do Supabase:', error);
+                return [];
+            }
+
+            if (products && products.length > 0) {
                 console.log('✅ Produtos carregados do Supabase:', products.length);
                 
                 return products.map(product => ({
@@ -441,20 +387,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 }));
             }
             
-            // Fallback para produtos locais
-            console.log('🔄 Usando produtos locais');
-            return initialProducts;
+            console.log('ℹ️ Nenhum produto encontrado no Supabase');
+            return [];
             
         } catch (error) {
             console.error('❌ Erro ao carregar produtos:', error);
-            return initialProducts;
+            return [];
         }
     }
 
-    // Função para carregar categorias - VERSÃO CORRIGIDA
+    // Função para carregar categorias - SOMENTE DO SUPABASE
     async function loadCategoriesFromAPI() {
         try {
-            console.log('🔄 Tentando carregar categorias do Supabase...');
+            console.log('🔄 Carregando categorias do Supabase...');
             
             const { data: categories, error } = await supabase
                 .from('categories')
@@ -462,23 +407,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 .eq('status', 'active')
                 .order('name');
 
-            if (!error && categories) {
+            if (error) {
+                console.error('❌ Erro ao carregar categorias do Supabase:', error);
+                return [];
+            }
+
+            if (categories && categories.length > 0) {
                 console.log('✅ Categorias carregadas do Supabase:', categories.length);
                 return categories;
             }
+            
+            console.log('ℹ️ Nenhuma categoria encontrada no Supabase');
+            return [];
+            
         } catch (error) {
             console.error('❌ Erro ao carregar categorias:', error);
+            return [];
         }
-        
-        // Fallback para categorias locais
-        console.log('🔄 Usando categorias locais');
-        return [
-            { id: 1, name: "Maquiagem", status: "active" },
-            { id: 2, name: "Skincare", status: "active" },
-            { id: 3, name: "Cabelos", status: "active" },
-            { id: 4, name: "Perfumes", status: "active" },
-            { id: 5, name: "Corpo e Banho", status: "active" }
-        ];
     }
 
     // Função para atualizar botões de categoria - CORRIGIDA
@@ -500,7 +445,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
             
-            // Adiciona categorias
+            // Adiciona categorias do Supabase
             categories.forEach(category => {
                 const button = document.createElement('button');
                 button.className = 'category-btn';
@@ -513,7 +458,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 categoriesContainer.appendChild(button);
             });
             
-            console.log('✅ Botões de categoria atualizados');
+            console.log('✅ Botões de categoria atualizados com', categories.length, 'categorias');
         } catch (error) {
             console.error('❌ Erro ao atualizar botões de categoria:', error);
         }
@@ -539,7 +484,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Filtra os produtos pela categoria ID
         const filteredProducts = currentProducts.filter(product => 
-            product.category_id == categoryId || product.category === categoryId
+            product.category_id == categoryId
         );
         
         renderFilteredProducts(filteredProducts);
