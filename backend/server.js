@@ -6,6 +6,8 @@ import cors from 'cors';
 import jwt from 'jsonwebtoken';
 
 import bcrypt from 'bcryptjs';
+const compression = require('compression');
+app.use(compression()); // Adicionar isso antes das rotas
 
 // Para __dirname em ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -29,14 +31,22 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
+
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true })); // ← ADICIONE ESTA LINHA
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true })); // ← ADICIONE ESTA LINHA
 app.use(express.static(path.join(__dirname, '../frontend')));
-
 const JWT_SECRET = process.env.JWT_SECRET || 'seu_jwt_secret_super_seguro_aqui';
-
+// Middleware de logging
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`${req.method} ${req.url} - ${duration}ms`);
+  });
+  next();
+});
 // Middleware de autenticação SIMPLIFICADO para teste
 const authenticateToken = async (req, res, next) => {
     console.log('🔐 Verificando autenticação...');
@@ -47,6 +57,30 @@ const authenticateToken = async (req, res, next) => {
         console.log('⚠️  Token não fornecido, continuando como visitante');
         req.user = null;
         return next();
+        // Em vez de buscar todos os produtos de uma vez, usar paginação
+app.get('/api/admin/products', async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20; // Limite por página
+  const skip = (page - 1) * limit;
+
+  try {
+    const products = await Product.find()
+      .skip(skip)
+      .limit(limit)
+      .select('name price image stock') // Apenas campos necessários
+      .lean(); // Retorna objetos JS simples (mais rápido)
+
+    const total = await Product.countDocuments();
+    
+    res.json({
+      products,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
     }
 
     try {
