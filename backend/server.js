@@ -48,39 +48,34 @@ app.use((req, res, next) => {
   next();
 });
 // Middleware de autenticação SIMPLIFICADO para teste
+ const jwt = require('jsonwebtoken');
+
 const authenticateToken = async (req, res, next) => {
     console.log('🔐 Verificando autenticação...');
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
+        console.log('❌ Token não fornecido');
+        return res.status(401).json({ error: 'Acesso negado. Token necessário.' });
+    }
+
+    try {
+        const verified = jwt.verify(token, process.env.JWT_SECRET || 'seu_segredo_aqui');
+        req.user = verified;
+        console.log('✅ Token válido para usuário:', verified.id || verified.email);
+        next();
+    } catch (error) {
+        console.log('❌ Token inválido:', error.message);
+        return res.status(403).json({ error: 'Token inválido ou expirado.' });
+    }
+};
+    if (!token) {
         console.log('⚠️  Token não fornecido, continuando como visitante');
         req.user = null;
         return next();
         // Em vez de buscar todos os produtos de uma vez, usar paginação
-app.get('/api/admin/products', async (req, res) => {
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 20; // Limite por página
-  const skip = (page - 1) * limit;
 
-  try {
-    const products = await Product.find()
-      .skip(skip)
-      .limit(limit)
-      .select('name price image stock') // Apenas campos necessários
-      .lean(); // Retorna objetos JS simples (mais rápido)
-
-    const total = await Product.countDocuments();
-    
-    res.json({
-      products,
-      totalPages: Math.ceil(total / limit),
-      currentPage: page
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
     }
 
     try {
@@ -103,8 +98,8 @@ app.get('/api/admin/products', async (req, res) => {
     } catch (error) {
         console.log('❌ Token inválido:', error.message);
         return res.status(403).json({ error: 'Token inválido' });
-    }
-};
+}
+
 
 // Testar conexão com Supabase
 async function testSupabaseConnection() {
