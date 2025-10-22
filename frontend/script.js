@@ -1,28 +1,4 @@
-// ========== FUNÇÃO PARA OTIMIZAR IMAGENS - ADICIONE ISSO ==========
-function optimizeImageUrl(url) {
-    if (!url) return 'https://via.placeholder.com/500x500?text=Sem+Imagem';
-    
-    // Se for do Supabase Storage, adiciona parâmetros de otimização
-    if (url.includes('supabase.co/storage')) {
-        const separator = url.includes('?') ? '&' : '?';
-        return `${url}${separator}width=500&height=500&quality=70`;
-    }
-    
-    // Se for Unsplash, também otimiza
-    if (url.includes('unsplash.com')) {
-        const separator = url.includes('?') ? '&' : '?';
-        return `${url}${separator}w=500&h=500&q=70&fit=crop`;
-    }
-    
-    // Se for imagem local ou de outros serviços
-    if (url.startsWith('http') && !url.includes('placeholder.com')) {
-        // Tenta otimizar adicionando parâmetros (funciona em muitos CDNs)
-        const separator = url.includes('?') ? '&' : '?';
-        return `${url}${separator}width=500&height=500&quality=70`;
-    }
-    
-    return url;
-}
+
 // Dados iniciais dos produtos (fallback) - MANTIDO
 const initialProducts = [
     {
@@ -149,14 +125,6 @@ async function loadProductsFromStorage() {
         return initialProducts;
     }
 }
-// Adicione isto ao seu código - FUNCIONA HOJE
-function optimizeImage(url) {
-    // Reduz para 500px de largura, 70% qualidade
-    if(url.includes('supabase.co')) {
-        return url + '?width=500&height=500&quality=70';
-    }
-    return url;
-}
 // Função para carregar categorias da API - NOVA
 async function loadCategoriesFromAPI() {
     try {
@@ -215,35 +183,6 @@ async function updateCategoryButtons() {
         console.error('❌ Erro ao atualizar botões de categoria:', error);
     }
 }
-// NO INÍCIO DO ARQUIVO, APÓS AS CONSTANTES
-function optimizeImageUrl(url) {
-    if (!url) return 'https://via.placeholder.com/500x500?text=Sem+Imagem';
-    
-    // Se for do Supabase Storage, adiciona parâmetros de otimização
-    if (url.includes('supabase.co/storage')) {
-        const separator = url.includes('?') ? '&' : '?';
-        return `${url}${separator}width=500&height=500&quality=70&format=webp`;
-    }
-    
-    // Se for Unsplash, também otimiza
-    if (url.includes('unsplash.com')) {
-        return url.replace(/w=\d+/, 'w=500').replace(/h=\d+/, 'h=500');
-    }
-    
-    return url;
-}
-
-// MODIFIQUE TODAS AS IMAGENS NO loadProducts():
-const productCard = document.createElement('div');
-productCard.className = 'product-card';
-productCard.innerHTML = `
-    <img src="${optimizeImageUrl(product.image)}" 
-         alt="${product.name}" 
-         class="product-image"
-         loading="lazy"
-         onerror="this.src='https://via.placeholder.com/500x500?text=Erro+Imagem'">
-    <!-- resto do código -->
-`;
 
 // Função para filtrar produtos por categoria - ATUALIZADA
 function filterProductsByCategory(categoryId) {
@@ -272,7 +211,6 @@ function filterProductsByCategory(categoryId) {
 }
 
 // Função para renderizar produtos filtrados - NOVA
-// Função para renderizar produtos filtrados - ATUALIZADA
 function renderFilteredProducts(filteredProducts) {
     const productsContainer = document.getElementById('products-container');
     
@@ -289,19 +227,12 @@ function renderFilteredProducts(filteredProducts) {
         return;
     }
     
-    filteredProducts.forEach((product, index) => {
+    filteredProducts.forEach(product => {
         const productCard = document.createElement('div');
         productCard.className = 'product-card';
-        
-        const loadingType = index < 6 ? 'eager' : 'lazy';
-        
         productCard.innerHTML = `
-            <img src="${optimizeImageUrl(product.image)}" 
-                 alt="${product.name}" 
-                 class="product-image"
-                 loading="${loadingType}"
-                 decoding="async"
-                 onerror="this.src='https://via.placeholder.com/500x500?text=Erro+Carregar+Imagem'">
+            <img src="${product.image}" alt="${product.name}" class="product-image"
+                 onerror="this.src='https://via.placeholder.com/300x300?text=Produto+Sem+Imagem'">
             <div class="product-info">
                 <h3 class="product-title">${product.name}</h3>
                 <div class="product-price">R$ ${product.price.toFixed(2)}</div>
@@ -338,7 +269,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 
 // Carregar produtos na página - ATUALIZADA
-// Carregar produtos na página - ATUALIZADA COM OTIMIZAÇÃO
 async function loadProducts() {
     const productsContainer = document.getElementById('products-container');
     currentProducts = await loadProductsFromStorage();
@@ -356,20 +286,12 @@ async function loadProducts() {
         return;
     }
     
-    currentProducts.forEach((product, index) => {
+    currentProducts.forEach(product => {
         const productCard = document.createElement('div');
         productCard.className = 'product-card';
-        
-        // LAZY LOADING: primeiras imagens carregam rápido, outras lazy
-        const loadingType = index < 6 ? 'eager' : 'lazy';
-        
         productCard.innerHTML = `
-            <img src="${optimizeImageUrl(product.image)}" 
-                 alt="${product.name}" 
-                 class="product-image"
-                 loading="${loadingType}"
-                 decoding="async"
-                 onerror="this.src='https://via.placeholder.com/500x500?text=Erro+Carregar+Imagem'">
+            <img src="${product.image}" alt="${product.name}" class="product-image"
+                 onerror="this.src='https://via.placeholder.com/300x300?text=Produto+Sem+Imagem'">
             <div class="product-info">
                 <h3 class="product-title">${product.name}</h3>
                 <div class="product-price">R$ ${product.price.toFixed(2)}</div>
