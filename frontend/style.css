@@ -2170,3 +2170,11 @@ footer {
 .container {
   overflow-x: visible !important;
 }
+
+.product-image {
+    max-width: 100%;
+    height: 250px; /* Altura fixa */
+    object-fit: cover; /* Corta imagem mantendo proporção */
+    image-rendering: -webkit-optimize-contrast; /* Melhora qualidade */
+    transform: translateZ(0); /* Aceleração GPU */
+}

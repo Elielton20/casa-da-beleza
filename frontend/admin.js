@@ -100,8 +100,9 @@ class ProductManager {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>
-                    <img src="${product.image}" alt="${product.name}" class="product-image-admin" 
-                         onerror="this.src='https://via.placeholder.com/60x60?text=Imagem'">
+                    <img src="${optimizeImageUrl(product.image)}" alt="${product.name}" class="product-image"
+     loading="lazy" decoding="async"
+     onerror="this.src='https://via.placeholder.com/300x300?text=Produto+Sem+Imagem'">
                 </td>
                 <td>${product.name}</td>
                 <td>R$ ${parseFloat(product.price).toFixed(2)}</td>
