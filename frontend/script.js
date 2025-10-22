@@ -170,12 +170,17 @@ function generateStars(rating) {
 // ========== FUNÇÕES ORIGINAIS MANTIDAS (sem alterações) ==========
 
 // Função para carregar produtos do servidor - MANTIDA
+// Função para carregar produtos do servidor - VERSÃO CORRIGIDA
 async function loadProductsFromStorage() {
     try {
         console.log('🔄 Iniciando carregamento de produtos...');
         
         // DEBUG: Verifica se o Supabase está inicializado
-        console.log('🔧 Supabase config:', { supabaseUrl, supabaseKey, supabase: !!supabase });
+        console.log('🔧 Supabase config:', { 
+            supabaseUrl: supabaseUrl ? '✅ Configurada' : '❌ Faltando',
+            supabaseKey: supabaseKey ? '✅ Configurada' : '❌ Faltando',
+            supabase: !!supabase 
+        });
         
         // Tenta carregar do Supabase
         if (supabase && supabaseUrl && supabaseKey) {
@@ -193,7 +198,10 @@ async function loadProductsFromStorage() {
                 `)
                 .order('name');
 
-            console.log('📦 Resposta do Supabase:', { products, error });
+            console.log('📦 Resposta do Supabase:', { 
+                productsCount: products ? products.length : 0, 
+                error: error ? error.message : 'Nenhum erro' 
+            });
             
             if (!error && products && products.length > 0) {
                 console.log('✅ Produtos carregados do Supabase:', products.length);
@@ -209,24 +217,35 @@ async function loadProductsFromStorage() {
                     reviewCount: Math.floor(Math.random() * 200) + 50
                 }));
                 
-                console.log('🎯 Produtos formatados:', produtosFormatados);
+                console.log('🎯 Primeiros produtos:', produtosFormatados.slice(0, 3));
                 return produtosFormatados;
             } else {
                 console.error('❌ Erro ao carregar do Supabase:', error);
+                // Mesmo com erro, não retorna array vazio - usa fallback
             }
+        } else {
+            console.error('❌ Supabase não configurado corretamente');
         }
         
-        // Fallback para produtos locais
+        // Fallback: Tenta carregar do localStorage (admin)
+        console.log('🔄 Tentando carregar do localStorage...');
+        const adminProducts = localStorage.getItem('adminProducts');
+        if (adminProducts) {
+            const parsedProducts = JSON.parse(adminProducts);
+            console.log('📦 Produtos do localStorage:', parsedProducts.length);
+            return parsedProducts;
+        }
+        
+        // Fallback final: produtos locais
         console.log('🔄 Usando produtos locais como fallback');
         return initialProducts;
         
     } catch (error) {
         console.error('💥 Erro crítico ao carregar produtos:', error);
-        console.log('🔄 Usando produtos locais');
+        console.log('🔄 Usando produtos locais devido ao erro');
         return initialProducts;
     }
 }
-
 // Função para carregar categorias da API - MANTIDA
 async function loadCategoriesFromAPI() {
     try {
