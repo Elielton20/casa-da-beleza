@@ -335,14 +335,12 @@ function loadCartFromStorage() {
 function updateCartCounter() {
     const cartCounter = document.getElementById('cart-count');
     
-    // Garantir que cada item tenha pelo menos quantidade 1
+    // CORREÇÃO: Garantir que cada item tenha pelo menos quantidade 1
     const totalItems = cart.reduce((total, item) => {
-        // Se a quantidade for inválida (0, undefined, null), use 1
-        const quantity = item.quantity && item.quantity > 0 ? item.quantity : 1;
+        // Se quantity for 0, undefined, null ou negativo, considera 1
+        const quantity = item.quantity > 0 ? item.quantity : 1;
         return total + quantity;
     }, 0);
-    
-    console.log('🔢 Atualizando contador do carrinho:', totalItems, 'itens');
     
     if (cartCounter) {
         cartCounter.textContent = totalItems;
@@ -353,7 +351,6 @@ function updateCartCounter() {
             cartCounter.style.display = 'none';
         }
     } else {
-        // Se o contador não existir, tente criá-lo
         createCartCounter();
     }
 }
