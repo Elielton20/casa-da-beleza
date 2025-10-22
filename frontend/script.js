@@ -1,3 +1,4 @@
+
 // Dados iniciais dos produtos (fallback) - MANTIDO
 const initialProducts = [
     {
@@ -64,37 +65,22 @@ let currentProducts = [];
 let currentUser = null;
 const WHATSAPP_NUMBER = "559391445597";
 
-// ========== VARIÁVEIS DE CONTROLE ==========
-let isInitializing = false;
-let isLoadingProducts = false;
-let productsLoadPromise = null;
-let productsCheckInterval = null;
-
 // ========== FUNÇÕES ATUALIZADAS PARA CATEGORIAS ==========
 
-// Função para carregar produtos - VERSÃO OTIMIZADA
+// Função para carregar produtos do servidor - ATUALIZADA
+// Função para carregar produtos - VERSÃO DEBUG CORRIGIDA
 async function loadProductsFromStorage() {
     try {
         console.log('🔄 Iniciando carregamento de produtos...');
         
         // DEBUG: Verifica se o Supabase está inicializado
-        console.log('🔧 Supabase config:', { 
-            hasSupabase: !!supabase, 
-            hasUrl: !!supabaseUrl, 
-            hasKey: !!supabaseKey 
-        });
+        console.log('🔧 Supabase config:', { supabaseUrl, supabaseKey, supabase: !!supabase });
         
         // Tenta carregar do Supabase
         if (supabase && supabaseUrl && supabaseKey) {
             console.log('📡 Conectando ao Supabase...');
             
-            // ✅ ADICIONADO: Timeout manual de 15 segundos
-            const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Timeout Supabase')), 15000)
-            );
-            
-            // ✅ ADICIONADO: Query otimizada com limites
-            const queryPromise = supabase
+            const { data: products, error } = await supabase
                 .from('products')
                 .select(`
                     id,
@@ -104,15 +90,8 @@ async function loadProductsFromStorage() {
                     category_id,
                     categories (name)
                 `)
-                .eq('status', 'ativo')  // ✅ FILTRAR apenas ativos
-                .order('created_at', { ascending: false }) // ✅ Índice temporal
-                .limit(100); // ✅ LIMITAR resultados
-            
-            const { data: products, error } = await Promise.race([
-                queryPromise,
-                timeoutPromise
-            ]);
-            
+                .order('name');
+
             console.log('📦 Resposta do Supabase:', { products, error });
             
             if (!error && products && products.length > 0) {
@@ -124,7 +103,7 @@ async function loadProductsFromStorage() {
                     price: parseFloat(product.price),
                     category_id: product.category_id,
                     category: product.categories?.name || 'Sem categoria',
-                    image: product.image || getDefaultImage(),
+                    image: product.image || 'https://via.placeholder.com/300x300?text=Produto+Sem+Imagem',
                     rating: 4.5,
                     reviewCount: Math.floor(Math.random() * 200) + 50
                 }));
@@ -146,88 +125,66 @@ async function loadProductsFromStorage() {
         return initialProducts;
     }
 }
-
-function getDefaultImage() {
-    return 'https://via.placeholder.com/300x300?text=Produto+Sem+Imagem';
-}
-
-// Função para carregar categorias da API - VERSÃO COM FALLBACK
+// Função para carregar categorias da API - NOVA
 async function loadCategoriesFromAPI() {
     try {
         console.log('🔄 Carregando categorias da API...');
         const response = await fetch('/api/categories');
-        
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) throw new Error('Erro ao carregar categorias');
         const categories = await response.json();
-        
-        if (!categories || categories.length === 0) {
-            throw new Error('Nenhuma categoria retornada');
-        }
         
         console.log('✅ Categorias carregadas:', categories);
         return categories;
     } catch (error) {
         console.error('❌ Erro ao carregar categorias:', error);
-        throw error; // Propaga o erro para o chamador
+        return [];
     }
 }
 
-// Função para atualizar botões de categoria - VERSÃO CORRIGIDA
+// Função para atualizar botões de categoria - NOVA
 async function updateCategoryButtons() {
     try {
         const categories = await loadCategoriesFromAPI();
-        renderCategoryButtons(categories);
+        const categoriesContainer = document.querySelector('.categories');
         
-    } catch (error) {
-        console.error('❌ Erro ao carregar categorias, usando fallback:', error);
-        setupDefaultCategories();
-    }
-}
-
-function setupDefaultCategories() {
-    const defaultCategories = [
-        { id: 'all', name: 'Todos' },
-        { id: 1, name: 'Maquiagem' },
-        { id: 2, name: 'Skincare' },
-        { id: 3, name: 'Cabelos' },
-        { id: 4, name: 'Perfumes' },
-        { id: 5, name: 'Corpo e Banho' }
-    ];
-    
-    renderCategoryButtons(defaultCategories);
-}
-
-function renderCategoryButtons(categories) {
-    const categoriesContainer = document.querySelector('.categories');
-    if (!categoriesContainer) {
-        console.error('❌ Container de categorias não encontrado');
-        return;
-    }
-    
-    // Limpa container
-    categoriesContainer.innerHTML = '';
-    
-    categories.forEach(category => {
-        const button = document.createElement('button');
-        button.className = 'category-btn';
-        button.setAttribute('data-category-id', category.id);
-        button.textContent = category.name;
+        if (!categoriesContainer) {
+            console.error('❌ Container de categorias não encontrado');
+            return;
+        }
         
-        button.addEventListener('click', function() {
-            filterProductsByCategory(category.id);
+        if (categories.length === 0) {
+            console.log('ℹ️ Nenhuma categoria encontrada, usando categorias padrão');
+            return;
+        }
+        
+        // Limpa categorias existentes (exceto "Todos")
+        const existingButtons = categoriesContainer.querySelectorAll('.category-btn');
+        existingButtons.forEach(btn => {
+            if (btn.getAttribute('data-category-id') !== 'all') {
+                btn.remove();
+            }
         });
         
-        categoriesContainer.appendChild(button);
-    });
-    
-    // Ativa "Todos" por padrão
-    const firstBtn = categoriesContainer.querySelector('.category-btn');
-    if (firstBtn) firstBtn.classList.add('active');
-    
-    console.log('✅ Botões de categoria atualizados');
+        // Adiciona categorias da API
+        categories.forEach(category => {
+            const button = document.createElement('button');
+            button.className = 'category-btn';
+            button.setAttribute('data-category-id', category.id);
+            button.textContent = category.name;
+            button.addEventListener('click', function() {
+                filterProductsByCategory(category.id);
+            });
+            
+            categoriesContainer.appendChild(button);
+        });
+        
+        console.log('✅ Botões de categoria atualizados');
+    } catch (error) {
+        console.error('❌ Erro ao atualizar botões de categoria:', error);
+    }
 }
 
-// Função para filtrar produtos por categoria - MANTIDA
+// Função para filtrar produtos por categoria - ATUALIZADA
 function filterProductsByCategory(categoryId) {
     console.log('🎯 Filtrando produtos por categoria ID:', categoryId);
     
@@ -253,14 +210,20 @@ function filterProductsByCategory(categoryId) {
     renderFilteredProducts(filteredProducts);
 }
 
-// Função para renderizar produtos filtrados - MANTIDA
+// Função para renderizar produtos filtrados - NOVA
 function renderFilteredProducts(filteredProducts) {
     const productsContainer = document.getElementById('products-container');
     
     productsContainer.innerHTML = '';
     
     if (filteredProducts.length === 0) {
-        productsContainer.innerHTML = getNoProductsHTML();
+        productsContainer.innerHTML = `
+            <div style="text-align: center; padding: 3rem; grid-column: 1 / -1;">
+                <i class="fas fa-search" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
+                <h3 style="color: #666; margin-bottom: 1rem;">Nenhum produto encontrado</h3>
+                <p style="color: #999;">Tente outra categoria ou busca.</p>
+            </div>
+        `;
         return;
     }
     
@@ -269,7 +232,7 @@ function renderFilteredProducts(filteredProducts) {
         productCard.className = 'product-card';
         productCard.innerHTML = `
             <img src="${product.image}" alt="${product.name}" class="product-image"
-                 onerror="this.src='${getDefaultImage()}'">
+                 onerror="this.src='https://via.placeholder.com/300x300?text=Produto+Sem+Imagem'">
             <div class="product-info">
                 <h3 class="product-title">${product.name}</h3>
                 <div class="product-price">R$ ${product.price.toFixed(2)}</div>
@@ -295,85 +258,40 @@ function renderFilteredProducts(filteredProducts) {
 
 // ========== INICIALIZAÇÃO ATUALIZADA ==========
 
-// ✅ CORREÇÃO: Inicialização controlada
-async function initializeApp() {
-    // Carrega produtos UMA VEZ
+// Inicialização - ATUALIZADA
+document.addEventListener('DOMContentLoaded', async function() {
     await loadProducts();
-    
-    // Setup que não depende de produtos
+    await updateCategoryButtons(); // ← ADICIONAR ESTA LINHA
     setupEventListeners();
     checkUserAuth();
     loadCartFromStorage();
     updateCartCounter();
-    
-    // Categorias em paralelo (opcional)
-    updateCategoryButtons().catch(error => {
-        console.error('❌ Erro em categorias:', error);
-    });
-}
-
-// Inicialização - ATUALIZADA
-document.addEventListener('DOMContentLoaded', async function() {
-    if (isInitializing) return;
-    isInitializing = true;
-    
-    try {
-        await initializeApp();
-    } catch (error) {
-        console.error('❌ Erro na inicialização:', error);
-        showNotification('Erro ao carregar a aplicação. Recarregue a página.');
-    } finally {
-        isInitializing = false;
-    }
 });
 
-// ✅ CORREÇÃO: Carregar produtos com controle de concorrência
+// Carregar produtos na página - ATUALIZADA
 async function loadProducts() {
-    // Se já está carregando, retorna a mesma promise
-    if (isLoadingProducts) {
-        console.log('⏳ Carregamento já em andamento, aguardando...');
-        return productsLoadPromise;
-    }
-    
-    isLoadingProducts = true;
-    
-    productsLoadPromise = (async () => {
-        const productsContainer = document.getElementById('products-container');
-        
-        try {
-            currentProducts = await loadProductsFromStorage();
-            
-            if (currentProducts.length === 0) {
-                productsContainer.innerHTML = getEmptyProductsHTML();
-                return;
-            }
-            
-            renderProducts(currentProducts);
-            
-        } catch (error) {
-            console.error('❌ Erro ao carregar produtos:', error);
-            productsContainer.innerHTML = getErrorProductsHTML();
-        }
-    })();
-    
-    try {
-        await productsLoadPromise;
-    } finally {
-        isLoadingProducts = false;
-        productsLoadPromise = null;
-    }
-}
-
-function renderProducts(products) {
     const productsContainer = document.getElementById('products-container');
+    currentProducts = await loadProductsFromStorage();
+    
     productsContainer.innerHTML = '';
     
-    products.forEach(product => {
+    if (currentProducts.length === 0) {
+        productsContainer.innerHTML = `
+            <div style="text-align: center; padding: 3rem; grid-column: 1 / -1;">
+                <i class="fas fa-box-open" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
+                <h3 style="color: #666; margin-bottom: 1rem;">Nenhum produto disponível</h3>
+                <p style="color: #999;">Os produtos serão adicionados em breve.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    currentProducts.forEach(product => {
         const productCard = document.createElement('div');
         productCard.className = 'product-card';
         productCard.innerHTML = `
             <img src="${product.image}" alt="${product.name}" class="product-image"
-                 onerror="this.src='${getDefaultImage()}'">
+                 onerror="this.src='https://via.placeholder.com/300x300?text=Produto+Sem+Imagem'">
             <div class="product-info">
                 <h3 class="product-title">${product.name}</h3>
                 <div class="product-price">R$ ${product.price.toFixed(2)}</div>
@@ -395,39 +313,6 @@ function renderProducts(products) {
         `;
         productsContainer.appendChild(productCard);
     });
-}
-
-function getEmptyProductsHTML() {
-    return `
-        <div style="text-align: center; padding: 3rem; grid-column: 1 / -1;">
-            <i class="fas fa-box-open" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
-            <h3 style="color: #666; margin-bottom: 1rem;">Nenhum produto disponível</h3>
-            <p style="color: #999;">Os produtos serão adicionados em breve.</p>
-        </div>
-    `;
-}
-
-function getErrorProductsHTML() {
-    return `
-        <div style="text-align: center; padding: 3rem; grid-column: 1 / -1;">
-            <i class="fas fa-exclamation-triangle" style="font-size: 4rem; color: #ff6b6b; margin-bottom: 1rem;"></i>
-            <h3 style="color: #666; margin-bottom: 1rem;">Erro ao carregar produtos</h3>
-            <p style="color: #999;">Tente recarregar a página.</p>
-            <button onclick="location.reload()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer;">
-                Recarregar Página
-            </button>
-        </div>
-    `;
-}
-
-function getNoProductsHTML() {
-    return `
-        <div style="text-align: center; padding: 3rem; grid-column: 1 / -1;">
-            <i class="fas fa-search" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
-            <h3 style="color: #666; margin-bottom: 1rem;">Nenhum produto encontrado</h3>
-            <p style="color: #999;">Tente outra categoria ou busca.</p>
-        </div>
-    `;
 }
 
 // ========== FUNÇÕES DO CARRINHO (MANTIDAS) ==========
@@ -782,32 +667,21 @@ function setupEventListeners() {
     checkForNewProducts();
 }
 
-// ✅ CORREÇÃO: Verificação mais inteligente de novos produtos
+// Verificar novos produtos do admin
 function checkForNewProducts() {
-    // Limpa intervalo anterior se existir
-    if (productsCheckInterval) {
-        clearInterval(productsCheckInterval);
-    }
-    
-    // Verifica a cada 30 segundos (não 5)
-    productsCheckInterval = setInterval(async () => {
-        try {
-            const adminProducts = localStorage.getItem('adminProducts');
-            if (!adminProducts) return;
-            
+    setInterval(async () => {
+        const adminProducts = localStorage.getItem('adminProducts');
+        if (adminProducts) {
             const parsedProducts = JSON.parse(adminProducts);
-            const currentIds = currentProducts.map(p => p.id).sort();
-            const newIds = parsedProducts.map(p => p.id).sort();
+            const currentProductIds = currentProducts.map(p => p.id);
+            const newProductIds = parsedProducts.map(p => p.id);
             
-            // Só recarrega se realmente houver mudanças
-            if (JSON.stringify(currentIds) !== JSON.stringify(newIds)) {
-                console.log('🔄 Novos produtos detectados, recarregando...');
+            if (JSON.stringify(currentProductIds) !== JSON.stringify(newProductIds)) {
+                console.log('Novos produtos detectados, recarregando...');
                 await loadProducts();
             }
-        } catch (error) {
-            console.error('❌ Erro ao verificar novos produtos:', error);
         }
-    }, 30000); // 30 segundos
+    }, 5000);
 }
 
 // ========== FUNÇÕES DE USUÁRIO (MANTIDAS) ==========
@@ -1046,7 +920,13 @@ function searchProducts(query) {
     productsContainer.innerHTML = '';
     
     if (filteredProducts.length === 0) {
-        productsContainer.innerHTML = getNoProductsHTML();
+        productsContainer.innerHTML = `
+            <div style="text-align: center; padding: 3rem; grid-column: 1 / -1;">
+                <i class="fas fa-search" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
+                <h3 style="color: #666; margin-bottom: 1rem;">Nenhum produto encontrado</h3>
+                <p style="color: #999;">Tente outros termos de busca.</p>
+            </div>
+        `;
         return;
     }
     
@@ -1055,7 +935,7 @@ function searchProducts(query) {
         productCard.className = 'product-card';
         productCard.innerHTML = `
             <img src="${product.image}" alt="${product.name}" class="product-image"
-                 onerror="this.src='${getDefaultImage()}'">
+                 onerror="this.src='https://via.placeholder.com/300x300?text=Produto+Sem+Imagem'">
             <div class="product-info">
                 <h3 class="product-title">${product.name}</h3>
                 <div class="product-price">R$ ${product.price.toFixed(2)}</div>
@@ -1106,7 +986,7 @@ function sortProducts(criteria) {
         productCard.className = 'product-card';
         productCard.innerHTML = `
             <img src="${product.image}" alt="${product.name}" class="product-image"
-                 onerror="this.src='${getDefaultImage()}'">
+                 onerror="this.src='https://via.placeholder.com/300x300?text=Produto+Sem+Imagem'">
             <div class="product-info">
                 <h3 class="product-title">${product.name}</h3>
                 <div class="product-price">R$ ${product.price.toFixed(2)}</div>
