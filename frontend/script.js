@@ -16,29 +16,43 @@ const WHATSAPP_NUMBER = "559391445597";
 
 // ========== FUNÇÕES ATUALIZADAS PARA PERFORMANCE ==========
 
-// Função para carregar produtos - VERSÃO OTIMIZADA
 async function loadProducts() {
     const productsContainer = document.getElementById('products-container');
-    allProducts = await loadProductsFromStorage();
-    currentProducts = allProducts;
     
-    productsContainer.innerHTML = '';
-    currentPage = 0;
-    
-    if (allProducts.length === 0) {
-       productsContainer.innerHTML = `
-    <div style="text-align: center; padding: 3rem; grid-column: 1 / -1;">
-        <i class="fas fa-box-open" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
-        <h3 style="color: #666; margin-bottom: 1rem;">Nenhum produto</h3>
-        <p style="color: #999;">Os produtos serão adicionados em breve.</p>
-    </div>
-`;
-        return;
+    try {
+        allProducts = await loadProductsFromStorage();
+        currentProducts = allProducts;
+        
+        productsContainer.innerHTML = '';
+        currentPage = 0;
+        
+        console.log('📦 Produtos carregados:', allProducts.length);
+        
+        if (!allProducts || allProducts.length === 0) {
+            productsContainer.innerHTML = `
+                <div class="no-products" style="text-align: center; padding: 3rem; grid-column: 1 / -1;">
+                    <i class="fas fa-box-open" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
+                    <h3 style="color: #666; margin-bottom: 1rem;">Nenhum produto</h3>
+                    <p style="color: #999;">Os produtos serão adicionados em breve.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        renderProductsChunk();
+        setupInfiniteScroll();
+        setupLazyLoading();
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar produtos:', error);
+        productsContainer.innerHTML = `
+            <div class="no-products" style="text-align: center; padding: 3rem; grid-column: 1 / -1;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
+                <h3 style="color: #666; margin-bottom: 1rem;">Erro ao carregar produtos</h3>
+                <p style="color: #999;">Tente recarregar a página.</p>
+            </div>
+        `;
     }
-    
-    renderProductsChunk();
-    setupInfiniteScroll();
-    setupLazyLoading();
 }
 
 // Nova função: Renderizar produtos em partes

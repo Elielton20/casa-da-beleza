@@ -2178,3 +2178,34 @@ footer {
     image-rendering: -webkit-optimize-contrast; /* Melhora qualidade */
     transform: translateZ(0); /* Aceleração GPU */
 }
+
+
+/* Garantir que o container de produtos ocupe espaço mesmo quando vazio */
+.products-grid {
+    min-height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Estilo para a mensagem de nenhum produto */
+.no-products {
+    text-align: center;
+    padding: 3rem;
+    width: 100%;
+}
+
+.no-products i {
+    font-size: 4rem;
+    color: #ccc;
+    margin-bottom: 1rem;
+}
+
+.no-products h3 {
+    color: #666;
+    margin-bottom: 1rem;
+}
+
+.no-products p {
+    color: #999;
+}
