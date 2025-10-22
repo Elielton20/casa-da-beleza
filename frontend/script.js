@@ -26,13 +26,13 @@ async function loadProducts() {
     currentPage = 0;
     
     if (allProducts.length === 0) {
-        productsContainer.innerHTML = `
-            <div style="text-align: center; padding: 3rem; grid-column: 1 / -1;">
-                <i class="fas fa-box-open" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
-                <h3 style="color: #666; margin-bottom: 1rem;">Nenhum produto disponível</h3>
-                <p style="color: #999;">Os produtos serão adicionados em breve.</p>
-            </div>
-        `;
+       productsContainer.innerHTML = `
+    <div style="text-align: center; padding: 3rem; grid-column: 1 / -1;">
+        <i class="fas fa-box-open" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
+        <h3 style="color: #666; margin-bottom: 1rem;">Nenhum produto</h3>
+        <p style="color: #999;">Os produtos serão adicionados em breve.</p>
+    </div>
+`;
         return;
     }
     
@@ -306,12 +306,12 @@ function renderFilteredProducts(filteredProducts) {
     
     if (filteredProducts.length === 0) {
         productsContainer.innerHTML = `
-            <div style="text-align: center; padding: 3rem; grid-column: 1 / -1;">
-                <i class="fas fa-search" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
-                <h3 style="color: #666; margin-bottom: 1rem;">Nenhum produto encontrado</h3>
-                <p style="color: #999;">Tente outra categoria ou busca.</p>
-            </div>
-        `;
+    <div style="text-align: center; padding: 3rem; grid-column: 1 / -1;">
+        <i class="fas fa-search" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
+        <h3 style="color: #666; margin-bottom: 1rem;">Nenhum produto</h3>
+        <p style="color: #999;">Tente outra categoria ou busca.</p>
+    </div>
+`;
         return;
     }
     
