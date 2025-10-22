@@ -1,5 +1,10 @@
-
 // Dados iniciais dos produtos (fallback) - MANTIDO
+
+// ========== ADICIONADO: Variáveis de otimização ==========
+let currentPage = 0;
+const PRODUCTS_PER_PAGE = 12;
+let allProducts = [];
+let starsCache = new Map();
 
 // ========== ADICIONADO: Carrinho de compras ==========
 let cart = [];
@@ -9,10 +14,148 @@ let currentProducts = [];
 let currentUser = null;
 const WHATSAPP_NUMBER = "559391445597";
 
-// ========== FUNÇÕES ATUALIZADAS PARA CATEGORIAS ==========
+// ========== FUNÇÕES ATUALIZADAS PARA PERFORMANCE ==========
 
-// Função para carregar produtos do servidor - ATUALIZADA
-// Função para carregar produtos - VERSÃO DEBUG CORRIGIDA
+// Função para carregar produtos - VERSÃO OTIMIZADA
+async function loadProducts() {
+    const productsContainer = document.getElementById('products-container');
+    allProducts = await loadProductsFromStorage();
+    currentProducts = allProducts;
+    
+    productsContainer.innerHTML = '';
+    currentPage = 0;
+    
+    if (allProducts.length === 0) {
+        productsContainer.innerHTML = `
+            <div style="text-align: center; padding: 3rem; grid-column: 1 / -1;">
+                <i class="fas fa-box-open" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
+                <h3 style="color: #666; margin-bottom: 1rem;">Nenhum produto disponível</h3>
+                <p style="color: #999;">Os produtos serão adicionados em breve.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    renderProductsChunk();
+    setupInfiniteScroll();
+    setupLazyLoading();
+}
+
+// Nova função: Renderizar produtos em partes
+function renderProductsChunk() {
+    const productsContainer = document.getElementById('products-container');
+    const startIndex = currentPage * PRODUCTS_PER_PAGE;
+    const endIndex = startIndex + PRODUCTS_PER_PAGE;
+    const productsToRender = allProducts.slice(startIndex, endIndex);
+    
+    const fragment = document.createDocumentFragment();
+    
+    productsToRender.forEach(product => {
+        const productCard = document.createElement('div');
+        productCard.className = 'product-card';
+        productCard.innerHTML = `
+            <img data-src="${product.image}" alt="${product.name}" class="product-image lazy"
+                 onerror="this.src='https://via.placeholder.com/300x300?text=Produto+Sem+Imagem'">
+            <div class="product-info">
+                <h3 class="product-title">${product.name}</h3>
+                <div class="product-price">R$ ${product.price.toFixed(2)}</div>
+                <div class="product-rating">
+                    <div class="stars">
+                        ${generateStars(product.rating)}
+                    </div>
+                    <span>(${product.reviewCount})</span>
+                </div>
+                <div class="product-actions">
+                    <button class="buy-now-btn" onclick="buyNow(${product.id})">
+                        <i class="fab fa-whatsapp"></i> Comprar Agora
+                    </button>
+                    <button class="add-to-cart-btn" onclick="addToCart(${product.id})">
+                        <i class="fas fa-shopping-cart"></i> Carrinho
+                    </button>
+                </div>
+            </div>
+        `;
+        fragment.appendChild(productCard);
+    });
+    
+    productsContainer.appendChild(fragment);
+    currentPage++;
+}
+
+// Nova função: Scroll infinito
+function setupInfiniteScroll() {
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting && 
+                (currentPage * PRODUCTS_PER_PAGE) < allProducts.length) {
+                renderProductsChunk();
+                setupLazyLoading();
+            }
+        });
+    }, {
+        threshold: 0.1
+    });
+    
+    const trigger = document.createElement('div');
+    trigger.id = 'load-more-trigger';
+    trigger.style.height = '10px';
+    document.getElementById('products-container').appendChild(trigger);
+    
+    observer.observe(trigger);
+}
+
+// Nova função: Lazy Loading para imagens
+function setupLazyLoading() {
+    const lazyImages = document.querySelectorAll('.product-image.lazy');
+    
+    const imageObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const img = entry.target;
+                img.src = img.dataset.src;
+                img.classList.remove('lazy');
+                imageObserver.unobserve(img);
+            }
+        });
+    });
+
+    lazyImages.forEach(img => {
+        imageObserver.observe(img);
+    });
+}
+
+// Função generateStars OTIMIZADA com cache
+function generateStars(rating) {
+    const cacheKey = rating.toString();
+    if (starsCache.has(cacheKey)) {
+        return starsCache.get(cacheKey);
+    }
+    
+    const fullStars = Math.floor(rating);
+    const halfStar = rating % 1 >= 0.5;
+    const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+    
+    let stars = '';
+    
+    for (let i = 0; i < fullStars; i++) {
+        stars += '<i class="fas fa-star"></i>';
+    }
+    
+    if (halfStar) {
+        stars += '<i class="fas fa-star-half-alt"></i>';
+    }
+    
+    for (let i = 0; i < emptyStars; i++) {
+        stars += '<i class="far fa-star"></i>';
+    }
+    
+    starsCache.set(cacheKey, stars);
+    return stars;
+}
+
+// ========== FUNÇÕES ORIGINAIS MANTIDAS (sem alterações) ==========
+
+// Função para carregar produtos do servidor - MANTIDA
 async function loadProductsFromStorage() {
     try {
         console.log('🔄 Iniciando carregamento de produtos...');
@@ -69,7 +212,8 @@ async function loadProductsFromStorage() {
         return initialProducts;
     }
 }
-// Função para carregar categorias da API - NOVA
+
+// Função para carregar categorias da API - MANTIDA
 async function loadCategoriesFromAPI() {
     try {
         console.log('🔄 Carregando categorias da API...');
@@ -85,7 +229,7 @@ async function loadCategoriesFromAPI() {
     }
 }
 
-// Função para atualizar botões de categoria - NOVA
+// Função para atualizar botões de categoria - MANTIDA
 async function updateCategoryButtons() {
     try {
         const categories = await loadCategoriesFromAPI();
@@ -128,7 +272,7 @@ async function updateCategoryButtons() {
     }
 }
 
-// Função para filtrar produtos por categoria - ATUALIZADA
+// Função para filtrar produtos por categoria - MANTIDA
 function filterProductsByCategory(categoryId) {
     console.log('🎯 Filtrando produtos por categoria ID:', categoryId);
     
@@ -154,7 +298,7 @@ function filterProductsByCategory(categoryId) {
     renderFilteredProducts(filteredProducts);
 }
 
-// Função para renderizar produtos filtrados - NOVA
+// Função para renderizar produtos filtrados - MANTIDA
 function renderFilteredProducts(filteredProducts) {
     const productsContainer = document.getElementById('products-container');
     
@@ -202,61 +346,99 @@ function renderFilteredProducts(filteredProducts) {
 
 // ========== INICIALIZAÇÃO ATUALIZADA ==========
 
-// Inicialização - ATUALIZADA
+// Inicialização - ATUALIZADA com lazy loading
 document.addEventListener('DOMContentLoaded', async function() {
-    await loadProducts();
-    await updateCategoryButtons(); // ← ADICIONAR ESTA LINHA
+    await loadProducts(); // Agora usa a versão otimizada
+    await updateCategoryButtons();
     setupEventListeners();
     checkUserAuth();
     loadCartFromStorage();
     updateCartCounter();
 });
 
-// Carregar produtos na página - ATUALIZADA
-async function loadProducts() {
-    const productsContainer = document.getElementById('products-container');
-    currentProducts = await loadProductsFromStorage();
+// ========== CONFIGURAÇÃO DE EVENT LISTENERS ATUALIZADA ==========
+
+// Configurar event listeners - ATUALIZADA com debounce
+function setupEventListeners() {
+    // Modal de Login
+    const loginBtn = document.getElementById('user-btn');
+    const loginModal = document.getElementById('login-modal');
+    const closeLoginModal = loginModal?.querySelector('.close-modal');
     
-    productsContainer.innerHTML = '';
-    
-    if (currentProducts.length === 0) {
-        productsContainer.innerHTML = `
-            <div style="text-align: center; padding: 3rem; grid-column: 1 / -1;">
-                <i class="fas fa-box-open" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
-                <h3 style="color: #666; margin-bottom: 1rem;">Nenhum produto disponível</h3>
-                <p style="color: #999;">Os produtos serão adicionados em breve.</p>
-            </div>
-        `;
-        return;
+    if (loginBtn && loginModal && closeLoginModal) {
+        loginBtn.addEventListener('click', () => {
+            if (currentUser) {
+                alert(`Logado como: ${currentUser.name}\nEmail: ${currentUser.email}`);
+            } else {
+                loginModal.style.display = 'flex';
+            }
+        });
+        
+        closeLoginModal.addEventListener('click', () => {
+            loginModal.style.display = 'none';
+        });
     }
     
-    currentProducts.forEach(product => {
-        const productCard = document.createElement('div');
-        productCard.className = 'product-card';
-        productCard.innerHTML = `
-            <img src="${product.image}" alt="${product.name}" class="product-image"
-                 onerror="this.src='https://via.placeholder.com/300x300?text=Produto+Sem+Imagem'">
-            <div class="product-info">
-                <h3 class="product-title">${product.name}</h3>
-                <div class="product-price">R$ ${product.price.toFixed(2)}</div>
-                <div class="product-rating">
-                    <div class="stars">
-                        ${generateStars(product.rating)}
-                    </div>
-                    <span>(${product.reviewCount})</span>
-                </div>
-                <div class="product-actions">
-                    <button class="buy-now-btn" onclick="buyNow(${product.id})">
-                        <i class="fab fa-whatsapp"></i> Comprar Agora
-                    </button>
-                    <button class="add-to-cart-btn" onclick="addToCart(${product.id})">
-                        <i class="fas fa-shopping-cart"></i> Carrinho
-                    </button>
-                </div>
-            </div>
-        `;
-        productsContainer.appendChild(productCard);
+    // Modal do Carrinho
+    const cartBtn = document.getElementById('cart-btn');
+    const cartModal = document.getElementById('cart-modal');
+    const closeCartModal = cartModal?.querySelector('.close-modal');
+    
+    if (cartBtn && cartModal && closeCartModal) {
+        cartBtn.addEventListener('click', () => {
+            updateCartDisplay();
+            cartModal.style.display = 'flex';
+        });
+        
+        closeCartModal.addEventListener('click', () => {
+            cartModal.style.display = 'none';
+        });
+    }
+    
+    // Fechar modais clicando fora
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('modal')) {
+            e.target.style.display = 'none';
+        }
     });
+    
+    // Filtros de categoria - MANTIDA
+    const categoryBtns = document.querySelectorAll('.category-btn');
+    categoryBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const categoryId = this.getAttribute('data-category-id') || this.getAttribute('data-category');
+            filterProductsByCategory(categoryId);
+        });
+    });
+    
+    // Busca COM DEBOUNCE (nova otimização)
+    const searchInput = document.querySelector('.search-box input');
+    if (searchInput) {
+        let searchTimeout;
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                searchProducts(e.target.value);
+            }, 300);
+        });
+    }
+    
+    // Ordenação - MANTIDA
+    const sortSelect = document.querySelector('.sort select');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', (e) => {
+            sortProducts(e.target.value);
+        });
+    }
+    
+    // Event listener para formulário de login
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', handleUserLogin);
+    }
+
+    // Verificar se há novos produtos do admin
+    checkForNewProducts();
 }
 
 // ========== FUNÇÕES DO CARRINHO (MANTIDAS) ==========
@@ -328,7 +510,7 @@ function loadCartFromStorage() {
     }
 }
 
-// Atualizar contador do carrinho - CORRIGIDA
+// Atualizar contador do carrinho - MANTIDA
 function updateCartCounter() {
     const cartCounter = document.getElementById('cart-count');
     const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
@@ -415,7 +597,7 @@ function updateCartDisplay() {
     cartTotalElement.textContent = `R$ ${total.toFixed(2)}`;
 }
 
-// Menu Hamburguer para Mobile
+// Menu Hamburguer para Mobile - MANTIDO
 document.addEventListener('DOMContentLoaded', function() {
     const menuToggle = document.createElement('button');
     menuToggle.className = 'menu-toggle';
@@ -448,7 +630,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Finalizar compra via WhatsApp
+// Finalizar compra via WhatsApp - MANTIDO
 function checkout() {
     if (cart.length === 0) {
         alert('Seu carrinho está vazio!');
@@ -507,111 +689,9 @@ function buyNow(productId) {
     window.open(whatsappUrl, '_blank');
 }
 
-// Gerar estrelas para avaliação - MANTIDO
-function generateStars(rating) {
-    const fullStars = Math.floor(rating);
-    const halfStar = rating % 1 >= 0.5;
-    const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
-    
-    let stars = '';
-    
-    for (let i = 0; i < fullStars; i++) {
-        stars += '<i class="fas fa-star"></i>';
-    }
-    
-    if (halfStar) {
-        stars += '<i class="fas fa-star-half-alt"></i>';
-    }
-    
-    for (let i = 0; i < emptyStars; i++) {
-        stars += '<i class="far fa-star"></i>';
-    }
-    
-    return stars;
-}
+// ========== FUNÇÕES RESTANTES MANTIDAS (sem alterações) ==========
 
-// ========== CONFIGURAÇÃO DE EVENT LISTENERS ATUALIZADA ==========
-
-// Configurar event listeners - ATUALIZADA
-function setupEventListeners() {
-    // Modal de Login
-    const loginBtn = document.getElementById('user-btn');
-    const loginModal = document.getElementById('login-modal');
-    const closeLoginModal = loginModal?.querySelector('.close-modal');
-    
-    if (loginBtn && loginModal && closeLoginModal) {
-        loginBtn.addEventListener('click', () => {
-            if (currentUser) {
-                alert(`Logado como: ${currentUser.name}\nEmail: ${currentUser.email}`);
-            } else {
-                loginModal.style.display = 'flex';
-            }
-        });
-        
-        closeLoginModal.addEventListener('click', () => {
-            loginModal.style.display = 'none';
-        });
-    }
-    
-    // Modal do Carrinho
-    const cartBtn = document.getElementById('cart-btn');
-    const cartModal = document.getElementById('cart-modal');
-    const closeCartModal = cartModal?.querySelector('.close-modal');
-    
-    if (cartBtn && cartModal && closeCartModal) {
-        cartBtn.addEventListener('click', () => {
-            updateCartDisplay();
-            cartModal.style.display = 'flex';
-        });
-        
-        closeCartModal.addEventListener('click', () => {
-            cartModal.style.display = 'none';
-        });
-    }
-    
-    // Fechar modais clicando fora
-    document.addEventListener('click', (e) => {
-        if (e.target.classList.contains('modal')) {
-            e.target.style.display = 'none';
-        }
-    });
-    
-    // Filtros de categoria - ATUALIZADO
-    const categoryBtns = document.querySelectorAll('.category-btn');
-    categoryBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const categoryId = this.getAttribute('data-category-id') || this.getAttribute('data-category');
-            filterProductsByCategory(categoryId);
-        });
-    });
-    
-    // Busca
-    const searchInput = document.querySelector('.search-box input');
-    if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            searchProducts(e.target.value);
-        });
-    }
-    
-    // Ordenação
-    const sortSelect = document.querySelector('.sort select');
-    if (sortSelect) {
-        sortSelect.addEventListener('change', (e) => {
-            sortProducts(e.target.value);
-        });
-    }
-    
-    // Event listener para formulário de login
-    const loginForm = document.getElementById('login-form');
-    if (loginForm) {
-        loginForm.addEventListener('submit', handleUserLogin);
-    }
-
-    // Verificar se há novos produtos do admin
-    checkForNewProducts();
-}
-
-// Verificar novos produtos do admin
+// Verificar novos produtos do admin - MANTIDA
 function checkForNewProducts() {
     setInterval(async () => {
         const adminProducts = localStorage.getItem('adminProducts');
@@ -660,7 +740,7 @@ function updateUserInterface() {
     }
 }
 
-// Login do usuário
+// Login do usuário - MANTIDA
 async function handleUserLogin(e) {
     e.preventDefault();
     
@@ -710,7 +790,7 @@ async function handleUserLogin(e) {
     }
 }
 
-// Logout do usuário
+// Logout do usuário - MANTIDA
 function logoutUser() {
     localStorage.removeItem('userToken');
     localStorage.removeItem('user');
@@ -725,7 +805,7 @@ function logoutUser() {
     showNotification('Você saiu da sua conta');
 }
 
-// Mostrar formulário de registro
+// Mostrar formulário de registro - MANTIDA
 function showRegisterForm() {
     const loginModal = document.getElementById('login-modal');
     if (!loginModal) return;
@@ -758,7 +838,7 @@ function showRegisterForm() {
     `;
 }
 
-// Mostrar formulário de login
+// Mostrar formulário de login - MANTIDA
 function showLoginForm() {
     const loginModal = document.getElementById('login-modal');
     if (!loginModal) return;
@@ -791,7 +871,7 @@ function showLoginForm() {
     loginForm.addEventListener('submit', handleUserLogin);
 }
 
-// Registro do usuário
+// Registro do usuário - MANTIDA
 async function handleUserRegister() {
     const name = document.getElementById('register-name').value;
     const email = document.getElementById('register-email').value;
@@ -1001,7 +1081,7 @@ function hideLoading() {
     }
 }
 
-// Função para forçar atualização dos produtos
+// Função para forçar atualização dos produtos - MANTIDA
 function refreshProducts() {
     loadProducts();
     showNotification('Produtos atualizados!');
