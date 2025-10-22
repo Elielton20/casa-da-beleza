@@ -1,4 +1,61 @@
 
+// Dados iniciais dos produtos (fallback) - MANTIDO
+const initialProducts = [
+    {
+        id: 1,
+        name: "Base Líquida Professional",
+        price: 89.90,
+        category: "Maquiagem",
+        image: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=500",
+        rating: 4.5,
+        reviewCount: 120
+    },
+    {
+        id: 2,
+        name: "Hidratante Facial com Vitamina C",
+        price: 129.90,
+        category: "Skincare",
+        image: "https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=500",
+        rating: 4.8,
+        reviewCount: 89
+    },
+    {
+        id: 3,
+        name: "Shampoo Reconstruidor",
+        price: 45.90,
+        category: "Cabelos",
+        image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=500",
+        rating: 4.3,
+        reviewCount: 156
+    },
+    {
+        id: 4,
+        name: "Perfume Flor do Campo",
+        price: 159.90,
+        category: "Perfumes",
+        image: "https://images.unsplash.com/photo-1541643600914-78b084683601?w=500",
+        rating: 4.6,
+        reviewCount: 203
+    },
+    {
+        id: 5,
+        name: "Óleo Corporal Relaxante",
+        price: 67.90,
+        category: "Corpo e Banho",
+        image: "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=500",
+        rating: 4.4,
+        reviewCount: 78
+    },
+    {
+        id: 6,
+        name: "Paleta de Sombras Profissionais",
+        price: 139.90,
+        category: "Maquiagem",
+        image: "https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?w=500",
+        rating: 4.7,
+        reviewCount: 145
+    }
+];
 
 // ========== ADICIONADO: Carrinho de compras ==========
 let cart = [];
@@ -68,6 +125,14 @@ async function loadProductsFromStorage() {
         return initialProducts;
     }
 }
+// Adicione isto ao seu código - FUNCIONA HOJE
+function optimizeImage(url) {
+    // Reduz para 500px de largura, 70% qualidade
+    if(url.includes('supabase.co')) {
+        return url + '?width=500&height=500&quality=70';
+    }
+    return url;
+}
 // Função para carregar categorias da API - NOVA
 async function loadCategoriesFromAPI() {
     try {
@@ -126,6 +191,35 @@ async function updateCategoryButtons() {
         console.error('❌ Erro ao atualizar botões de categoria:', error);
     }
 }
+// NO INÍCIO DO ARQUIVO, APÓS AS CONSTANTES
+function optimizeImageUrl(url) {
+    if (!url) return 'https://via.placeholder.com/500x500?text=Sem+Imagem';
+    
+    // Se for do Supabase Storage, adiciona parâmetros de otimização
+    if (url.includes('supabase.co/storage')) {
+        const separator = url.includes('?') ? '&' : '?';
+        return `${url}${separator}width=500&height=500&quality=70&format=webp`;
+    }
+    
+    // Se for Unsplash, também otimiza
+    if (url.includes('unsplash.com')) {
+        return url.replace(/w=\d+/, 'w=500').replace(/h=\d+/, 'h=500');
+    }
+    
+    return url;
+}
+
+// MODIFIQUE TODAS AS IMAGENS NO loadProducts():
+const productCard = document.createElement('div');
+productCard.className = 'product-card';
+productCard.innerHTML = `
+    <img src="${optimizeImageUrl(product.image)}" 
+         alt="${product.name}" 
+         class="product-image"
+         loading="lazy"
+         onerror="this.src='https://via.placeholder.com/500x500?text=Erro+Imagem'">
+    <!-- resto do código -->
+`;
 
 // Função para filtrar produtos por categoria - ATUALIZADA
 function filterProductsByCategory(categoryId) {
