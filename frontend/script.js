@@ -471,7 +471,10 @@ function setupEventListeners() {
     }
 
     // Verificar se há novos produtos do admin
+    // Verificação inicial de produtos (apenas uma vez)
+    setTimeout(() => {
     checkForNewProducts();
+   }, 2000);
 }
 
 // ========== FUNÇÕES DO CARRINHO (MANTIDAS) ==========
@@ -725,22 +728,24 @@ function buyNow(productId) {
 // ========== FUNÇÕES RESTANTES MANTIDAS (sem alterações) ==========
 
 // Verificar novos produtos do admin - MANTIDA
+// Verificar novos produtos do admin - VERSÃO CORRIGIDA
 function checkForNewProducts() {
-    setInterval(async () => {
-        const adminProducts = localStorage.getItem('adminProducts');
-        if (adminProducts) {
-            const parsedProducts = JSON.parse(adminProducts);
-            const currentProductIds = currentProducts.map(p => p.id);
-            const newProductIds = parsedProducts.map(p => p.id);
-            
-            if (JSON.stringify(currentProductIds) !== JSON.stringify(newProductIds)) {
-                console.log('Novos produtos detectados, recarregando...');
-                await loadProducts();
-            }
-        }
-    }, 5000);
+    // ⚠️ REMOVIDO: setInterval automático
+    // ⚠️ AGORA: Só verifica quando há uma ação específica do admin
+    
+    console.log('🔍 Verificação de novos produtos (modo manual)');
+    
+    // Apenas verifica se houver uma flag específica no localStorage
+    const shouldRefresh = localStorage.getItem('forceRefreshProducts');
+    if (shouldRefresh === 'true') {
+        console.log('🔄 Recarregando produtos por solicitação do admin...');
+        localStorage.removeItem('forceRefreshProducts'); // Limpa a flag
+        loadProducts();
+        return true;
+    }
+    
+    return false;
 }
-
 // ========== FUNÇÕES DE USUÁRIO (MANTIDAS) ==========
 
 // Verificar se usuário está logado
