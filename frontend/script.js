@@ -323,19 +323,239 @@ function loadCartFromStorage() {
 }
 
 // Atualizar contador do carrinho - CORRIGIDA
+// ========== CORREÇÕES ESPECÍFICAS PARA O CARRINHO ==========
+
+// Atualizar exibição do carrinho - CORREÇÃO COMPLETA
+function updateCartDisplay() {
+    const cartItemsContainer = document.getElementById('cart-items');
+    const cartTotalElement = document.getElementById('cart-total');
+    const emptyCartElement = document.getElementById('empty-cart');
+    const cartContentElement = document.getElementById('cart-content');
+    
+    console.log('🛒 Atualizando exibição do carrinho, itens:', cart.length);
+    
+    if (!cartItemsContainer || !cartTotalElement || !emptyCartElement || !cartContentElement) {
+        console.error('❌ Elementos do carrinho não encontrados!');
+        return;
+    }
+    
+    if (cart.length === 0) {
+        console.log('🛒 Carrinho vazio');
+        emptyCartElement.style.display = 'block';
+        cartContentElement.style.display = 'none';
+        return;
+    }
+    
+    console.log('🛒 Exibindo', cart.length, 'itens no carrinho');
+    emptyCartElement.style.display = 'none';
+    cartContentElement.style.display = 'block';
+    
+    cartItemsContainer.innerHTML = '';
+    
+    let total = 0;
+    
+    cart.forEach(item => {
+        const itemTotal = (item.price || 0) * (item.quantity || 1);
+        total += itemTotal;
+        
+        const cartItemElement = document.createElement('div');
+        cartItemElement.className = 'cart-item';
+        cartItemElement.innerHTML = `
+            <img src="${item.image}" alt="${item.name}" 
+                 onerror="this.src='https://via.placeholder.com/60x60?text=Produto'">
+            <div class="cart-item-details">
+                <h4>${item.name}</h4>
+                <div class="cart-item-price">R$ ${(item.price || 0).toFixed(2)}</div>
+            </div>
+            <div class="cart-item-controls">
+                <button onclick="updateQuantity(${item.id}, -1)">-</button>
+                <span>${item.quantity || 1}</span>
+                <button onclick="updateQuantity(${item.id}, 1)">+</button>
+                <button class="remove-btn" onclick="removeFromCart(${item.id})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `;
+        cartItemsContainer.appendChild(cartItemElement);
+    });
+    
+    cartTotalElement.textContent = `R$ ${total.toFixed(2)}`;
+    console.log('🛒 Total do carrinho: R$', total.toFixed(2));
+}
+
+// Remover item do carrinho - CORRIGIDA
+function removeFromCart(productId) {
+    console.log('🗑️ Removendo item do carrinho:', productId);
+    cart = cart.filter(item => item.id !== productId);
+    saveCartToStorage();
+    updateCartCounter();
+    updateCartDisplay(); // ATUALIZA A EXIBIÇÃO IMEDIATAMENTE
+    showNotification('Produto removido do carrinho!');
+}
+
+// Atualizar quantidade do item no carrinho - CORRIGIDA
+function updateQuantity(productId, change) {
+    console.log('🔄 Atualizando quantidade do produto:', productId, 'mudança:', change);
+    
+    const item = cart.find(item => item.id === productId);
+    
+    if (item) {
+        item.quantity = (item.quantity || 1) + change;
+        
+        if (item.quantity <= 0) {
+            removeFromCart(productId);
+        } else {
+            saveCartToStorage();
+            updateCartCounter();
+            updateCartDisplay(); // ATUALIZA A EXIBIÇÃO IMEDIATAMENTE
+        }
+    }
+}
+
+// Adicionar produto ao carrinho - CORRIGIDA (já tinha, mas vou garantir)
+function addToCart(productId) {
+    const product = currentProducts.find(p => p.id === productId);
+    
+    if (!product) {
+        showNotification('Produto não encontrado!');
+        return;
+    }
+
+    const existingItem = cart.find(item => item.id === productId);
+    
+    if (existingItem) {
+        existingItem.quantity = (existingItem.quantity || 1) + 1;
+    } else {
+        cart.push({
+            id: product.id,
+            name: product.name,
+            price: product.price || 0,
+            image: product.image,
+            quantity: 1
+        });
+    }
+    
+    saveCartToStorage();
+    updateCartCounter();
+    showNotification(`${product.name} adicionado ao carrinho!`);
+    
+    // ATUALIZA A EXIBIÇÃO SE O CARRINHO ESTIVER ABERTO
+    if (document.getElementById('cart-modal').style.display === 'flex') {
+        updateCartDisplay();
+    }
+}
+
+// ========== CORREÇÃO DOS EVENT LISTENERS DO CARRINHO ==========
+
+// Substitua a parte dos event listeners do carrinho por esta versão corrigida:
+
+// Modal do Carrinho - VERSÃO CORRIGIDA
+const cartBtn = document.getElementById('cart-btn');
+const cartModal = document.getElementById('cart-modal');
+const closeCartModal = cartModal?.querySelector('.close-modal');
+
+if (cartBtn && cartModal && closeCartModal) {
+    cartBtn.addEventListener('click', () => {
+        console.log('📱 Abrindo modal do carrinho');
+        updateCartDisplay(); // GARANTE QUE ATUALIZA ANTES DE ABRIR
+        cartModal.style.display = 'flex';
+    });
+    
+    closeCartModal.addEventListener('click', () => {
+        cartModal.style.display = 'none';
+    });
+}
+
+// ========== CORREÇÃO DA INICIALIZAÇÃO DO CARRINHO ==========
+
+// Adicione esta função para garantir que o carrinho seja inicializado corretamente
+function initializeCart() {
+    console.log('🛒 Inicializando carrinho...');
+    loadCartFromStorage();
+    updateCartCounter();
+    
+    // Garante que os elementos do carrinho existam
+    setTimeout(() => {
+        updateCartDisplay();
+    }, 100);
+}
+
+// ========== ATUALIZE A INICIALIZAÇÃO PRINCIPAL ==========
+
+// Substitua esta parte no DOMContentLoaded:
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('🚀 Inicializando aplicação...');
+    
+    // 1. PRIMEIRO: Inicializa o carrinho
+    initializeCart();
+    
+    // 2. SEGUNDO: Carrega os produtos
+    await loadProducts();
+    
+    // 3. TERCEIRO: Configurações adicionais
+    await updateCategoryButtons();
+    setupEventListeners();
+    checkUserAuth();
+    
+    console.log('✅ Aplicação inicializada com sucesso!');
+});
+
+// ========== FUNÇÃO AUXILIAR PARA DEBUG ==========
+
+// Adicione esta função para ajudar no debug (opcional)
+function debugCart() {
+    console.log('=== DEBUG DO CARRINHO ===');
+    console.log('Itens no array cart:', cart);
+    console.log('LocalStorage:', localStorage.getItem('shoppingCart'));
+    console.log('Contador no DOM:', document.getElementById('cart-count')?.textContent);
+    console.log('Modal visível:', document.getElementById('cart-modal').style.display);
+    updateCartDisplay();
+}
+
+// ========== GARANTIR QUE TODAS AS FUNÇÕES DO CARRINHO ESTÃO CORRETAS ==========
+
+// Salvar carrinho no localStorage - REESCRITA PARA MAIOR CONFIABILIDADE
+function saveCartToStorage() {
+    try {
+        console.log('💾 Salvando carrinho no localStorage:', cart.length, 'itens');
+        localStorage.setItem('shoppingCart', JSON.stringify(cart));
+    } catch (e) {
+        console.error('❌ Erro ao salvar carrinho:', e);
+    }
+}
+
+// Carregar carrinho do localStorage - REESCRITA PARA MAIOR CONFIABILIDADE
+function loadCartFromStorage() {
+    try {
+        const savedCart = localStorage.getItem('shoppingCart');
+        console.log('📂 Carrinho salvo no localStorage:', savedCart);
+        
+        if (savedCart) {
+            cart = JSON.parse(savedCart);
+            console.log('🛒 Carrinho carregado:', cart.length, 'itens');
+        } else {
+            cart = [];
+            console.log('🛒 Nenhum carrinho salvo encontrado, iniciando vazio');
+        }
+    } catch (e) {
+        console.error('❌ Erro ao carregar carrinho:', e);
+        cart = [];
+    }
+}
+
+// Atualizar contador do carrinho - REESCRITA PARA MAIOR CONFIABILIDADE
 function updateCartCounter() {
     const cartCounter = document.getElementById('cart-count');
-    const totalItems = cart.reduce((total, item) => total + (item.quantity || 0), 0);
+    const totalItems = cart.reduce((total, item) => total + (item.quantity || 1), 0);
+    
+    console.log('🔢 Atualizando contador do carrinho:', totalItems, 'itens');
     
     if (cartCounter) {
         cartCounter.textContent = totalItems;
-        
-        if (totalItems > 0) {
-            cartCounter.style.display = 'flex';
-        } else {
-            cartCounter.style.display = 'none';
-        }
+        cartCounter.style.display = totalItems > 0 ? 'flex' : 'none';
     } else {
+        console.error('❌ Elemento cart-count não encontrado!');
+        // Tenta criar se não existir
         createCartCounter();
     }
 }
