@@ -16,65 +16,61 @@ const WHATSAPP_NUMBER = "559391445597";
 
 // Função para carregar produtos do servidor - ATUALIZADA
 // Função para carregar produtos - VERSÃO DEBUG CORRIGIDA
-// No frontend, use esta query ULTRA leve:
-async function carregarProdutos() {
-    console.log('🚀 Carregando produtos para loja...');
-    
+async function loadProductsFromStorage() {
     try {
-        const { data: products, error } = await supabase
-            .from('products')
-            .select('id, name, price, image, category_id')
-            .order('name')
-            .limit(12);
+        console.log('🔄 Iniciando carregamento de produtos...');
+        
+        // DEBUG: Verifica se o Supabase está inicializado
+        console.log('🔧 Supabase config:', { supabaseUrl, supabaseKey, supabase: !!supabase });
+        
+        // Tenta carregar do Supabase
+        if (supabase && supabaseUrl && supabaseKey) {
+            console.log('📡 Conectando ao Supabase...');
+            
+            const { data: products, error } = await supabase
+                .from('products')
+                .select(`
+                    id,
+                    name, 
+                    price,
+                    image,
+                    category_id,
+                    categories (name)
+                `)
+                .order('name');
 
-        console.log('📦 Resposta frontend:', { products, error });
-
-        if (error) {
-            console.error('❌ Erro frontend:', error);
-            return gerarProdutosMock();
+            console.log('📦 Resposta do Supabase:', { products, error });
+            
+            if (!error && products && products.length > 0) {
+                console.log('✅ Produtos carregados do Supabase:', products.length);
+                
+                const produtosFormatados = products.map(product => ({
+                    id: product.id,
+                    name: product.name,
+                    price: parseFloat(product.price),
+                    category_id: product.category_id,
+                    category: product.categories?.name || 'Sem categoria',
+                    image: product.image || 'https://via.placeholder.com/300x300?text=Produto+Sem+Imagem',
+                    rating: 4.5,
+                    reviewCount: Math.floor(Math.random() * 200) + 50
+                }));
+                
+                console.log('🎯 Produtos formatados:', produtosFormatados);
+                return produtosFormatados;
+            } else {
+                console.error('❌ Erro ao carregar do Supabase:', error);
+            }
         }
-
-        if (!products || products.length === 0) {
-            return gerarProdutosMock();
-        }
-
-        // Formatar rapidamente sem buscar categorias
-        const produtosFormatados = products.map(product => ({
-            id: product.id,
-            name: product.name,
-            price: parseFloat(product.price) || 0,
-            category: getCategoriaSimples(product.category_id),
-            image: product.image || getImagemPadrao(product.category_id),
-            rating: 4.0 + Math.random() * 1.5, // 4.0 - 5.5
-            reviewCount: Math.floor(Math.random() * 100) + 20
-        }));
-
-        return produtosFormatados;
-
-    } catch (err) {
-        console.error('💥 Erro frontend:', err);
-        return gerarProdutosMock();
+        
+        // Fallback para produtos locais
+        console.log('🔄 Usando produtos locais como fallback');
+        return initialProducts;
+        
+    } catch (error) {
+        console.error('💥 Erro crítico ao carregar produtos:', error);
+        console.log('🔄 Usando produtos locais');
+        return initialProducts;
     }
-}
-
-// Funções auxiliares rápidas
-function getCategoriaSimples(categoryId) {
-    const categorias = {
-        1: "Maquiagem", 2: "Cabelos", 3: "Perfumes", 
-        4: "Corpo e Banho", 5: "Skincare"
-    };
-    return categorias[categoryId] || "Beleza";
-}
-
-function getImagemPadrao(categoryId) {
-    const imagens = {
-        1: "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=300&h=300&fit=crop",
-        2: "https://images.unsplash.com/photo-1608248549163-6c8b55c4a71a?w=300&h=300&fit=crop",
-        3: "https://images.unsplash.com/photo-1590736969955-1d0c72c9b6b9?w=300&h=300&fit=crop",
-        4: "https://images.unsplash.com/photo-1556228578-1cfd50779d22?w=300&h=300&fit=crop",
-        5: "https://images.unsplash.com/photo-1556228578-1cfd50779d22?w=300&h=300&fit=crop"
-    };
-    return imagens[categoryId] || "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=300&h=300&fit=crop";
 }
 // Função para carregar categorias da API - NOVA
 async function loadCategoriesFromAPI() {
