@@ -1,29 +1,91 @@
 
 // Dados iniciais dos produtos (fallback) - MANTIDO
-const initialProducts = [
-   
-];
 
-// ========== ADICIONADO: Carrinho de compras ==========
+// ========== CONFIGURAÇÃO DO SUPABASE ==========
+const supabaseUrl = 'https://djpfhgbxspibucvacxpt.supabase.co'; // ← COLOQUE SUA URL
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqcGZoZ2J4c3BpYnVjdmFjeHB0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDg3NzMwNCwiZXhwIjoyMDc2NDUzMzA0fQ.dziOb3cIrlGiiM0PuJABuFioOf9BgnMcABQpM27N3qc'; // ← COLOQUE SUA KEY
+const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+// ========== DADOS INICIAIS ==========
+const initialProducts = [];
 let cart = [];
 let currentProducts = [];
-
-// ========== NOVO: Sistema de Usuário ==========
 let currentUser = null;
 const WHATSAPP_NUMBER = "559391445597";
 
-// ========== FUNÇÕES ATUALIZADAS PARA CATEGORIAS ==========
+// ========== FUNÇÕES PRINCIPAIS CORRIGIDAS ==========
 
-// Função para carregar produtos do servidor - ATUALIZADA
-// Função para carregar produtos - VERSÃO DEBUG CORRIGIDA
+// ✅ CORRIGIDO: Carregar categorias do Supabase
+async function loadCategoriesFromSupabase() {
+    try {
+        console.log('🔄 Carregando categorias do Supabase...');
+        
+        const { data: categories, error } = await supabase
+            .from('categories')
+            .select('*')
+            .order('name');
+
+        if (error) {
+            console.error('❌ Erro ao carregar categorias:', error);
+            return [];
+        }
+
+        console.log('✅ Categorias carregadas:', categories);
+        return categories || [];
+    } catch (error) {
+        console.error('❌ Erro ao carregar categorias:', error);
+        return [];
+    }
+}
+
+// ✅ CORRIGIDO: Atualizar botões de categoria
+async function updateCategoryButtons() {
+    try {
+        const categories = await loadCategoriesFromSupabase();
+        const categoriesContainer = document.querySelector('.categories');
+        
+        if (!categoriesContainer) {
+            console.error('❌ Container de categorias não encontrado');
+            return;
+        }
+        
+        if (categories.length === 0) {
+            console.log('ℹ️ Nenhuma categoria encontrada, usando categorias padrão');
+            return;
+        }
+        
+        // Limpa categorias existentes (exceto "Todos")
+        const existingButtons = categoriesContainer.querySelectorAll('.category-btn');
+        existingButtons.forEach(btn => {
+            if (btn.getAttribute('data-category-id') !== 'all') {
+                btn.remove();
+            }
+        });
+        
+        // Adiciona categorias do Supabase
+        categories.forEach(category => {
+            const button = document.createElement('button');
+            button.className = 'category-btn';
+            button.setAttribute('data-category-id', category.id);
+            button.textContent = category.name;
+            button.addEventListener('click', function() {
+                filterProductsByCategory(category.id);
+            });
+            
+            categoriesContainer.appendChild(button);
+        });
+        
+        console.log('✅ Botões de categoria atualizados');
+    } catch (error) {
+        console.error('❌ Erro ao atualizar botões de categoria:', error);
+    }
+}
+
+// ✅ Função para carregar produtos (mantida)
 async function loadProductsFromStorage() {
     try {
         console.log('🔄 Iniciando carregamento de produtos...');
         
-        // DEBUG: Verifica se o Supabase está inicializado
-        console.log('🔧 Supabase config:', { supabaseUrl, supabaseKey, supabase: !!supabase });
-        
-        // Tenta carregar do Supabase
         if (supabase && supabaseUrl && supabaseKey) {
             console.log('📡 Conectando ao Supabase...');
             
@@ -62,16 +124,30 @@ async function loadProductsFromStorage() {
             }
         }
         
-        // Fallback para produtos locais
         console.log('🔄 Usando produtos locais como fallback');
         return initialProducts;
         
     } catch (error) {
         console.error('💥 Erro crítico ao carregar produtos:', error);
-        console.log('🔄 Usando produtos locais');
         return initialProducts;
     }
 }
+
+// ✅ Inicialização Corrigida
+document.addEventListener('DOMContentLoaded', async function() {
+    await loadProducts();
+    await updateCategoryButtons();
+    setupEventListeners();
+    checkUserAuth();
+    loadCartFromStorage();
+    updateCartCounter();
+});
+
+// ✅ Restante do seu código (mantenha todas as outras funções como estão)
+// ... [todo o resto do seu código permanece igual] ...
+
+// ⚠️ REMOVA A ÚLTIMA LINHA COM ERRO:
+// }  sse  o codigo do java script ← REMOVER ESTA LINHA
 // Função para carregar categorias da API - NOVA
 async function loadCategoriesFromAPI() {
     try {
