@@ -159,14 +159,17 @@ app.get('/admin-panel.html', (req, res) => {
 // ========== ROTAS SIMPLIFICADAS PARA TESTE ==========
 
 // Buscar produtos (SEM autenticação para teste)
+// ✅ VERSÃO OTIMIZADA - Rota de produtos
 app.get('/api/products', async (req, res) => {
-    console.log('📦 Buscando produtos...');
+    console.log('📦 Buscando produtos (versão otimizada)...');
     try {
+        // Query MAIS SIMPLES e RÁPIDA
         const { data: products, error } = await supabase
             .from('products')
-            .select('*')
+            .select('id, name, price, image, category_id, status')
             .eq('status', 'active')
-            .order('created_at', { ascending: false });
+            .order('name')
+            .limit(100); // ✅ LIMITE para evitar timeout
 
         if (error) {
             console.log('❌ Erro ao buscar produtos:', error);
@@ -175,17 +178,15 @@ app.get('/api/products', async (req, res) => {
 
         console.log(`✅ ${products?.length || 0} produtos encontrados`);
         
-        // Formatar produtos
+        // Formatação SIMPLES dos produtos
         const formattedProducts = (products || []).map(product => ({
             id: product.id,
             name: product.name,
             price: parseFloat(product.price),
-            category_name: product.category_name || 'Sem categoria',
-            image: product.image,
-            description: product.description,
-            stock: product.stock,
-            rating: parseFloat(product.rating) || 4.5,
-            review_count: product.review_count || Math.floor(Math.random() * 200) + 50
+            category_id: product.category_id,
+            image: product.image || 'https://via.placeholder.com/300x300?text=Produto',
+            rating: 4.5,
+            review_count: Math.floor(Math.random() * 200) + 50
         }));
 
         res.json(formattedProducts);
@@ -194,27 +195,79 @@ app.get('/api/products', async (req, res) => {
         res.status(500).json({ error: 'Erro ao buscar produtos' });
     }
 });
+// ✅ CACHE SIMPLES para evitar queries repetidas
+const cache = {
+    products: null,
+    productsTimestamp: null,
+    categories: null, 
+    categoriesTimestamp: null
+};
+
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
+
+// ✅ Rota de produtos COM CACHE
+app.get('/api/products', async (req, res) => {
+    console.log('📦 Buscando produtos (com cache)...');
+    
+    // Verifica se tem cache válido
+    if (cache.products && cache.productsTimestamp && 
+        (Date.now() - cache.productsTimestamp) < CACHE_DURATION) {
+        console.log('✅ Retornando produtos do cache');
+        return res.json(cache.products);
+    }
+    
+    try {
+        const { data: products, error } = await supabase
+            .from('products')
+            .select('id, name, price, image, category_id')
+            .eq('status', 'active')
+            .order('name')
+            .limit(100);
+
+        if (error) throw error;
+
+        console.log(`✅ ${products?.length || 0} produtos encontrados`);
+        
+        const formattedProducts = (products || []).map(product => ({
+            id: product.id,
+            name: product.name,
+            price: parseFloat(product.price),
+            category_id: product.category_id,
+            image: product.image || 'https://via.placeholder.com/300x300?text=Produto',
+            rating: 4.5,
+            review_count: Math.floor(Math.random() * 200) + 50
+        }));
+
+        // Salva no cache
+        cache.products = formattedProducts;
+        cache.productsTimestamp = Date.now();
+        
+        res.json(formattedProducts);
+    } catch (error) {
+        console.error('❌ Erro ao buscar produtos:', error);
+        
+        // Se tem cache antigo, usa mesmo expirado
+        if (cache.products) {
+            console.log('⚠️  Usando cache expirado devido a erro');
+            return res.json(cache.products);
+        }
+        
+        res.status(500).json({ error: 'Erro ao buscar produtos' });
+    }
+});
 
 // Buscar categorias (SEM autenticação para teste)
+// ✅ CORRIGIDO - Rota de categorias
 app.get('/api/categories', async (req, res) => {
     console.log('📂 Buscando categorias...');
     try {
-        // Busca os produtos com categorias
-const { data: produtos, error: produtosError } = await supabase
-    .from('products')
-    .select(`
-        *,
-        categories (name)
-    `)
-    .order('name');
+        const { data: categories, error } = await supabase
+            .from('categories')
+            .select('*')
+            .eq('status', 'active')
+            .order('name');
 
-// Busca categorias para outros usos (se necessário)
-const { data: categories, error: categoriesError } = await supabase
-    .from('categories')
-    .select('*')
-    .eq('status', 'active')
-    .order('name');
-
+        // ✅ CORREÇÃO: Usar 'error' em vez de 'categoriesError'
         if (error) {
             console.log('❌ Erro ao buscar categorias:', error);
             return res.status(500).json({ error: 'Erro ao buscar categorias' });
