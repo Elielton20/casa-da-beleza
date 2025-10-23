@@ -164,20 +164,8 @@ async function loadCategoriesFromAPI() {
 }
 
 // Função para atualizar botões de categoria - NOVA
-async function updateCategoryButtons() {
-    try {
-        const categories = await loadCategoriesFromAPI();
-        const categoriesContainer = document.querySelector('.categories');
+
         
-        if (!categoriesContainer) {
-            console.error('❌ Container de categorias não encontrado');
-            return;
-        }
-        
-        if (categories.length === 0) {
-            console.log('ℹ️ Nenhuma categoria encontrada, usando categorias padrão');
-            return;
-        }
         
         // Limpa categorias existentes (exceto "Todos")
         const existingButtons = categoriesContainer.querySelectorAll('.category-btn');
