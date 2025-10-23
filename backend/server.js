@@ -159,12 +159,16 @@ app.get('/admin-panel.html', (req, res) => {
 // ========== ROTAS SIMPLIFICADAS PARA TESTE ==========
 
 // Buscar produtos (SEM autenticação para teste)
+// ✅ ROTA CORRIGIDA para produtos
 app.get('/api/products', async (req, res) => {
     console.log('📦 Buscando produtos...');
     try {
         const { data: products, error } = await supabase
             .from('products')
-            .select('*')
+            .select(`
+                *,
+                categories (name)
+            `)
             .eq('status', 'active')
             .order('created_at', { ascending: false });
 
@@ -175,12 +179,14 @@ app.get('/api/products', async (req, res) => {
 
         console.log(`✅ ${products?.length || 0} produtos encontrados`);
         
-        // Formatar produtos
+        // Formatar produtos CORRETAMENTE
         const formattedProducts = (products || []).map(product => ({
             id: product.id,
             name: product.name,
             price: parseFloat(product.price),
-            category_name: product.category_name || 'Sem categoria',
+            category_id: product.category_id,
+            category_name: product.categories?.name || 'Sem categoria',
+            category: product.categories?.name || 'Sem categoria', // Para compatibilidade
             image: product.image,
             description: product.description,
             stock: product.stock,
@@ -188,6 +194,7 @@ app.get('/api/products', async (req, res) => {
             review_count: product.review_count || Math.floor(Math.random() * 200) + 50
         }));
 
+        console.log('📊 Primeiro produto formatado:', formattedProducts[0]);
         res.json(formattedProducts);
     } catch (error) {
         console.error('❌ Erro ao buscar produtos:', error);
@@ -195,19 +202,39 @@ app.get('/api/products', async (req, res) => {
     }
 });
 
-// Buscar categorias (SEM autenticação para teste)
+// ✅ ROTA CORRIGIDA para categorias
 app.get('/api/categories', async (req, res) => {
     console.log('📂 Buscando categorias...');
     try {
-        // Busca os produtos com categorias
-const { data: produtos, error: produtosError } = await supabase
-    .from('products')
-    .select(`
-        *,
-        categories (name)
-    `)
-    .order('name');
+        const { data: categories, error } = await supabase
+            .from('categories')
+            .select('*')
+            .eq('status', 'active')
+            .order('name');
 
+        if (error) {
+            console.log('❌ Erro ao buscar categorias:', error);
+            return res.status(500).json({ error: 'Erro ao buscar categorias' });
+        }
+
+        console.log(`✅ ${categories?.length || 0} categorias encontradas`);
+        
+        // Formatar categorias CORRETAMENTE
+        const formattedCategories = (categories || []).map(category => ({
+            id: category.id,
+            name: category.name,
+            description: category.description,
+            image: category.image,
+            status: category.status
+        }));
+
+        console.log('📊 Primeira categoria:', formattedCategories[0]);
+        res.json(formattedCategories);
+    } catch (error) {
+        console.error('❌ Erro ao buscar categorias:', error);
+        res.status(500).json({ error: 'Erro ao buscar categorias' });
+    }
+});
 // Busca categorias para outros usos (se necessário)
 const { data: categories, error: categoriesError } = await supabase
     .from('categories')
@@ -220,13 +247,7 @@ const { data: categories, error: categoriesError } = await supabase
             return res.status(500).json({ error: 'Erro ao buscar categorias' });
         }
 
-        console.log(`✅ ${categories?.length || 0} categorias encontradas`);
-        res.json(categories || []);
-    } catch (error) {
-        console.error('❌ Erro ao buscar categorias:', error);
-        res.status(500).json({ error: 'Erro ao buscar categorias' });
-    }
-});
+      
 
 // Rota de login simplificada para teste
 app.post('/api/admin/login', async (req, res) => {

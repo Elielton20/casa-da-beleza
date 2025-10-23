@@ -78,55 +78,73 @@ async function updateCategoryButtons() {
 
 // ✅ Função para carregar produtos (mantida)
 // ✅ SUBSTITUA pela versão corrigida:
+// ✅ FUNÇÃO ROBUSTA para carregar produtos
 async function loadProductsFromStorage() {
     try {
         console.log('🔄 Iniciando carregamento de produtos...');
         
-        // Tenta carregar do SEU BACKEND
         const response = await fetch('/api/products');
         
         if (!response.ok) {
-            throw new Error('Erro ao carregar produtos do servidor');
+            throw new Error(`Erro HTTP: ${response.status}`);
         }
         
         const products = await response.json();
-        console.log('✅ Produtos carregados do backend:', products);
+        console.log('✅ Produtos brutos do backend:', products);
 
-        // Formata os produtos
-        const produtosFormatados = products.map(product => ({
-            id: product.id,
-            name: product.name,
-            price: parseFloat(product.price),
-            category_id: product.category_id,
-            category: product.category_name || 'Sem categoria',
-            image: product.image || 'https://via.placeholder.com/300x300?text=Produto+Sem+Imagem',
-            rating: 4.5,
-            reviewCount: Math.floor(Math.random() * 200) + 50
-        }));
-        
-        console.log('🎯 Produtos formatados:', produtosFormatados);
-        return produtosFormatados;
+        if (products && products.length > 0) {
+            // Processamento FLEXÍVEL dos produtos
+            const produtosFormatados = products.map(product => {
+                // Detecta automaticamente a estrutura dos dados
+                const categoryName = 
+                    product.category_name || 
+                    product.category || 
+                    (product.categories && product.categories.name) || 
+                    'Geral';
+                
+                const categoryId = product.category_id || product.category;
+                
+                const imageUrl = 
+                    product.image || 
+                    product.image_url || 
+                    product.photo || 
+                    'https://via.placeholder.com/300x300?text=Produto';
+                
+                const rating = 
+                    product.rating || 
+                    product.rating_score || 
+                    4.5;
+                
+                const reviewCount = 
+                    product.review_count || 
+                    product.reviews || 
+                    product.reviewCount || 
+                    Math.floor(Math.random() * 200) + 50;
+
+                return {
+                    id: product.id,
+                    name: product.name || product.title || 'Produto sem nome',
+                    price: parseFloat(product.price) || 0,
+                    category_id: categoryId,
+                    category: categoryName,
+                    image: imageUrl,
+                    rating: parseFloat(rating),
+                    reviewCount: parseInt(reviewCount)
+                };
+            });
+            
+            console.log('🎯 Produtos formatados:', produtosFormatados);
+            return produtosFormatados;
+        } else {
+            console.log('⚠️ Nenhum produto no backend, usando fallback');
+            return getFallbackProducts();
+        }
         
     } catch (error) {
         console.error('💥 Erro ao carregar produtos:', error);
-        console.log('🔄 Usando produtos locais como fallback');
-        return initialProducts;
+        return getFallbackProducts();
     }
 }
-
-// ✅ Inicialização Corrigida
-document.addEventListener('DOMContentLoaded', async function() {
-    await loadProducts();
-    await updateCategoryButtons();
-    setupEventListeners();
-    checkUserAuth();
-    loadCartFromStorage();
-    updateCartCounter();
-});
-
-// ✅ Restante do seu código (mantenha todas as outras funções como estão)
-// ... [todo o resto do seu código permanece igual] ...
-
 // ⚠️ REMOVA A ÚLTIMA LINHA COM ERRO:
 // }  sse  o codigo do java script ← REMOVER ESTA LINHA
 // Função para carregar categorias da API - NOVA
