@@ -453,7 +453,7 @@ class ProductManager {
             position: fixed;
             top: 20px;
             right: 20px;
-            background: #90c528ff;
+            background: #28a745;
             color: white;
             padding: 1rem 1.5rem;
             border-radius: 5px;
