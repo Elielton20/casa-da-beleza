@@ -28,39 +28,59 @@ async function loadProductsFromStorage() {
             console.log('📡 Conectando ao Supabase...');
             
             const { data: products, error } = await supabase
-                .from('products')
-                .select(`
-                    id,
-                    name, 
-                    price,
-                    image,
-                    category_id,
-                    categories (name)
-                `)
-                .order('name');
+    .from('products')
+    .select(`
+        id,
+        name, 
+        price,
+        image,
+        category_id
+    `)
+    .eq('active', true)  // FILTRO CRÍTICO - reduz dados
+    .order('name')
+    .limit(12);  // LIMITE para evitar timeout
 
-            console.log('📦 Resposta do Supabase:', { products, error });
-            
-            if (!error && products && products.length > 0) {
-                console.log('✅ Produtos carregados do Supabase:', products.length);
-                
-                const produtosFormatados = products.map(product => ({
-                    id: product.id,
-                    name: product.name,
-                    price: parseFloat(product.price),
-                    category_id: product.category_id,
-                    category: product.categories?.name || 'Sem categoria',
-                    image: product.image || 'https://via.placeholder.com/300x300?text=Produto+Sem+Imagem',
-                    rating: 4.5,
-                    reviewCount: Math.floor(Math.random() * 200) + 50
-                }));
-                
-                console.log('🎯 Produtos formatados:', produtosFormatados);
-                return produtosFormatados;
-            } else {
-                console.error('❌ Erro ao carregar do Supabase:', error);
-            }
+console.log('📦 Resposta do Supabase:', { products, error });
+
+if (!error && products && products.length > 0) {
+    console.log('✅ Produtos carregados do Supabase:', products.length);
+    
+    // AGORA buscar as categorias em SEPARADO (mais eficiente)
+    const categoryIds = [...new Set(products.map(p => p.category_id).filter(Boolean))];
+    
+    let categoriesMap = {};
+    if (categoryIds.length > 0) {
+        const { data: categories, error: catError } = await supabase
+            .from('categories')
+            .select('id, name')
+            .in('id', categoryIds);
+        
+        if (!catError && categories) {
+            categoriesMap = categories.reduce((acc, cat) => {
+                acc[cat.id] = cat.name;
+                return acc;
+            }, {});
         }
+    }
+    
+    const produtosFormatados = products.map(product => ({
+        id: product.id,
+        name: product.name,
+        price: parseFloat(product.price),
+        category_id: product.category_id,
+        category: categoriesMap[product.category_id] || 'Sem categoria',
+        image: product.image || 'https://via.placeholder.com/300x300?text=Produto+Sem+Imagem',
+        rating: 4.5,
+        reviewCount: Math.floor(Math.random() * 200) + 50
+    }));
+    
+    console.log('🎯 Produtos formatados:', produtosFormatados);
+    return produtosFormatados;
+} else {
+    console.error('❌ Erro ao carregar do Supabase:', error);
+    return [];
+}
+}
         
         // Fallback para produtos locais
         console.log('🔄 Usando produtos locais como fallback');
