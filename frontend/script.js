@@ -28,142 +28,39 @@ async function loadProductsFromStorage() {
             console.log('📡 Conectando ao Supabase...');
             
             const { data: products, error } = await supabase
-    .from('products')
-    .select(`
-        id,
-        name, 
-        price,
-        image,
-        category_id
-    `)
-    .eq('active', true)  // FILTRO CRÍTICO - reduz dados
-    .order('name')
-    .limit(12);  // LIMITE para evitar timeout
+                .from('products')
+                .select(`
+                    id,
+                    name, 
+                    price,
+                    image,
+                    category_id,
+                    categories (name)
+                `)
+                .order('name');
 
-console.log('📦 Resposta do Supabase:', { products, error });
-
-if (!error && products && products.length > 0) {
-    console.log('✅ Produtos carregados do Supabase:', products.length);
-    
-    // AGORA buscar as categorias em SEPARADO (mais eficiente)
-    const categoryIds = [...new Set(products.map(p => p.category_id).filter(Boolean))];
-    
-    let categoriesMap = {};
-    if (categoryIds.length > 0) {
-        const { data: categories, error: catError } = await supabase
-            .from('categories')
-            .select('id, name')
-            .in('id', categoryIds);
-        
-        if (!catError && categories) {
-            categoriesMap = categories.reduce((acc, cat) => {
-                acc[cat.id] = cat.name;
-                return acc;
-            }, {});
+            console.log('📦 Resposta do Supabase:', { products, error });
+            
+            if (!error && products && products.length > 0) {
+                console.log('✅ Produtos carregados do Supabase:', products.length);
+                
+                const produtosFormatados = products.map(product => ({
+                    id: product.id,
+                    name: product.name,
+                    price: parseFloat(product.price),
+                    category_id: product.category_id,
+                    category: product.categories?.name || 'Sem categoria',
+                    image: product.image || 'https://via.placeholder.com/300x300?text=Produto+Sem+Imagem',
+                    rating: 4.5,
+                    reviewCount: Math.floor(Math.random() * 200) + 50
+                }));
+                
+                console.log('🎯 Produtos formatados:', produtosFormatados);
+                return produtosFormatados;
+            } else {
+                console.error('❌ Erro ao carregar do Supabase:', error);
+            }
         }
-    }
-    
-    const produtosFormatados = products.map(product => ({
-        id: product.id,
-        name: product.name,
-        price: parseFloat(product.price),
-        category_id: product.category_id,
-        category: categoriesMap[product.category_id] || 'Sem categoria',
-        image: product.image || 'https://via.placeholder.com/300x300?text=Produto+Sem+Imagem',
-        rating: 4.5,
-        reviewCount: Math.floor(Math.random() * 200) + 50
-    }));
-    
-    console.log('🎯 Produtos formatados:', produtosFormatados);
-    return produtosFormatados;
-} else {
-    console.error('❌ Erro ao carregar do Supabase:', error);
-    return [];
-}}
-// No frontend, use esta query SUPER otimizada:
-async function carregarProdutos() {
-    console.log('🚀 Iniciando carregamento de produtos...');
-    
-    try {
-        // Query mais simples possível
-        const { data: products, error } = await supabase
-            .from('products')
-            .select('id, name, price, image, category_id')
-            .order('name')
-            .limit(16); // Limite reduzido
-
-        console.log('📦 Resposta Supabase:', { products, error });
-
-        if (error) {
-            console.error('❌ Erro Supabase:', error);
-            // Fallback para dados mock
-            return gerarProdutosMock();
-        }
-
-        if (!products || products.length === 0) {
-            console.warn('⚠️ Nenhum produto encontrado, usando mock');
-            return gerarProdutosMock();
-        }
-
-        console.log('✅ Produtos carregados:', products.length);
-        
-        // Formatar produtos (sem buscar categorias por enquanto)
-        const produtosFormatados = products.map(product => ({
-            id: product.id,
-            name: product.name,
-            price: parseFloat(product.price) || 99.99,
-            category: getCategoriaPorId(product.category_id),
-            image: product.image || 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=300&h=300&fit=crop',
-            rating: 4.5,
-            reviewCount: Math.floor(Math.random() * 200) + 50
-        }));
-
-        return produtosFormatados;
-
-    } catch (err) {
-        console.error('💥 Erro grave:', err);
-        return gerarProdutosMock();
-    }
-}
-
-// Função fallback com dados mock
-function gerarProdutosMock() {
-    const mockProducts = [
-        {
-            id: 1,
-            name: "Batom Vermelho",
-            price: 29.99,
-            category: "Maquiagem",
-            image: "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=300&h=300&fit=crop",
-            rating: 4.5,
-            reviewCount: 150
-        },
-        {
-            id: 2,
-            name: "Shampoo Hidratante",
-            price: 45.90,
-            category: "Cabelos", 
-            image: "https://images.unsplash.com/photo-1608248549163-6c8b55c4a71a?w=300&h=300&fit=crop",
-            rating: 4.3,
-            reviewCount: 89
-        }
-        // Adicione mais 6-8 produtos mock
-    ];
-    console.log('🔄 Usando produtos mock');
-    return mockProducts;
-}
-
-// Mapeamento simples de categorias
-function getCategoriaPorId(categoryId) {
-    const categorias = {
-        1: "Maquiagem",
-        2: "Cabelos", 
-        3: "Perfumes",
-        4: "Corpo e Banho",
-        5: "Skincare"
-    };
-    return categorias[categoryId] || "Beleza";
-}
         
         // Fallback para produtos locais
         console.log('🔄 Usando produtos locais como fallback');
