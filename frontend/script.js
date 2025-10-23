@@ -79,8 +79,13 @@ if (!error && products && products.length > 0) {
 } else {
     console.error('❌ Erro ao carregar do Supabase:', error);
     return [];
-}
-}
+}}// Teste super simples
+const { data: products, error } = await supabase
+    .from('products')
+    .select('id, name')
+    .limit(5);
+
+console.log('TESTE:', { products, error });
         
         // Fallback para produtos locais
         console.log('🔄 Usando produtos locais como fallback');
