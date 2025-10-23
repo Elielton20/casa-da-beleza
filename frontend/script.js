@@ -2,9 +2,6 @@
 // Dados iniciais dos produtos (fallback) - MANTIDO
 
 // ========== CONFIGURAÇÃO DO SUPABASE ==========
-const supabaseUrl = 'https://djpfhgbxspibucvacxpt.supabase.co'; // ← COLOQUE SUA URL
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqcGZoZ2J4c3BpYnVjdmFjeHB0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDg3NzMwNCwiZXhwIjoyMDc2NDUzMzA0fQ.dziOb3cIrlGiiM0PuJABuFioOf9BgnMcABQpM27N3qc'; // ← COLOQUE SUA KEY
-const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 // ========== DADOS INICIAIS ==========
 const initialProducts = [];
@@ -15,23 +12,21 @@ const WHATSAPP_NUMBER = "559391445597";
 
 // ========== FUNÇÕES PRINCIPAIS CORRIGIDAS ==========
 
-// ✅ CORRIGIDO: Carregar categorias do Supabase
+// ✅ SUBSTITUA pela versão corrigida:
 async function loadCategoriesFromSupabase() {
     try {
-        console.log('🔄 Carregando categorias do Supabase...');
+        console.log('🔄 Carregando categorias do backend...');
         
-        const { data: categories, error } = await supabase
-            .from('categories')
-            .select('*')
-            .order('name');
-
-        if (error) {
-            console.error('❌ Erro ao carregar categorias:', error);
-            return [];
+        const response = await fetch('/api/categories');
+        
+        if (!response.ok) {
+            throw new Error('Erro ao carregar categorias do servidor');
         }
-
+        
+        const categories = await response.json();
         console.log('✅ Categorias carregadas:', categories);
         return categories || [];
+        
     } catch (error) {
         console.error('❌ Erro ao carregar categorias:', error);
         return [];
@@ -82,53 +77,39 @@ async function updateCategoryButtons() {
 }
 
 // ✅ Função para carregar produtos (mantida)
+// ✅ SUBSTITUA pela versão corrigida:
 async function loadProductsFromStorage() {
     try {
         console.log('🔄 Iniciando carregamento de produtos...');
         
-        if (supabase && supabaseUrl && supabaseKey) {
-            console.log('📡 Conectando ao Supabase...');
-            
-            const { data: products, error } = await supabase
-                .from('products')
-                .select(`
-                    id,
-                    name, 
-                    price,
-                    image,
-                    category_id,
-                    categories (name)
-                `)
-                .order('name');
-
-            console.log('📦 Resposta do Supabase:', { products, error });
-            
-            if (!error && products && products.length > 0) {
-                console.log('✅ Produtos carregados do Supabase:', products.length);
-                
-                const produtosFormatados = products.map(product => ({
-                    id: product.id,
-                    name: product.name,
-                    price: parseFloat(product.price),
-                    category_id: product.category_id,
-                    category: product.categories?.name || 'Sem categoria',
-                    image: product.image || 'https://via.placeholder.com/300x300?text=Produto+Sem+Imagem',
-                    rating: 4.5,
-                    reviewCount: Math.floor(Math.random() * 200) + 50
-                }));
-                
-                console.log('🎯 Produtos formatados:', produtosFormatados);
-                return produtosFormatados;
-            } else {
-                console.error('❌ Erro ao carregar do Supabase:', error);
-            }
+        // Tenta carregar do SEU BACKEND
+        const response = await fetch('/api/products');
+        
+        if (!response.ok) {
+            throw new Error('Erro ao carregar produtos do servidor');
         }
         
-        console.log('🔄 Usando produtos locais como fallback');
-        return initialProducts;
+        const products = await response.json();
+        console.log('✅ Produtos carregados do backend:', products);
+
+        // Formata os produtos
+        const produtosFormatados = products.map(product => ({
+            id: product.id,
+            name: product.name,
+            price: parseFloat(product.price),
+            category_id: product.category_id,
+            category: product.category_name || 'Sem categoria',
+            image: product.image || 'https://via.placeholder.com/300x300?text=Produto+Sem+Imagem',
+            rating: 4.5,
+            reviewCount: Math.floor(Math.random() * 200) + 50
+        }));
+        
+        console.log('🎯 Produtos formatados:', produtosFormatados);
+        return produtosFormatados;
         
     } catch (error) {
-        console.error('💥 Erro crítico ao carregar produtos:', error);
+        console.error('💥 Erro ao carregar produtos:', error);
+        console.log('🔄 Usando produtos locais como fallback');
         return initialProducts;
     }
 }
