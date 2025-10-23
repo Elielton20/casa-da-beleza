@@ -345,282 +345,215 @@ document.addEventListener('DOMContentLoaded', function() {
    
 
     // ========== VARIÁVEIS GLOBAIS ==========
-    
-    // ========== CONFIGURAÇÃO ==========
-let cart = [];
-let currentProducts = [];
-let currentUser = null;
-const WHATSAPP_NUMBER = "559391445597";
+    let cart = [];
+    let currentProducts = [];
+    let currentUser = null;
+    const WHATSAPP_NUMBER = "559391445597";
 
-// ========== FUNÇÃO PARA CARREGAR PRODUTOS DO SEU BACKEND ==========
-async function loadProductsFromStorage() {
-    try {
-        console.log('🔄 Carregando produtos do SEU backend...');
-        
-        const response = await fetch('/api/products');
-        
-        if (!response.ok) {
-            throw new Error(`Erro: ${response.status}`);
+    // ========== FUNÇÕES PRINCIPAIS CORRIGIDAS ==========
+
+    // Função para carregar produtos - VERSÃO CORRIGIDA
+    async function loadProductsFromStorage() {
+        try {
+            console.log('🔄 Tentando carregar produtos do Supabase...');
+            
+            // Tenta carregar do Supabase primeiro
+            const { data: products, error } = await supabase
+                .from('products')
+                .select(`
+                    id,
+                    name, 
+                    price,
+                    image,
+                    category_id,
+                    categories (name)
+                `)
+                .order('name');
+
+            if (!error && products && products.length > 0) {
+                console.log('✅ Produtos carregados do Supabase:', products.length);
+                
+                return products.map(product => ({
+                    id: product.id,
+                    name: product.name,
+                    price: parseFloat(product.price),
+                    category_id: product.category_id,
+                    category: product.categories?.name || 'Sem categoria',
+                    image: product.image || 'https://via.placeholder.com/300x300?text=Produto+Sem+Imagem',
+                    rating: 4.5,
+                    reviewCount: Math.floor(Math.random() * 200) + 50
+                }));
+            }
+            
+            // Fallback para produtos locais
+            console.log('🔄 Usando produtos locais');
+            return initialProducts;
+            
+        } catch (error) {
+            console.error('❌ Erro ao carregar produtos:', error);
+            return initialProducts;
+        }
+    }
+
+    // Função para carregar categorias - VERSÃO CORRIGIDA
+    async function loadCategoriesFromAPI() {
+        try {
+            console.log('🔄 Tentando carregar categorias do Supabase...');
+            
+            const { data: categories, error } = await supabase
+                .from('categories')
+                .select('*')
+                .eq('status', 'active')
+                .order('name');
+
+            if (!error && categories) {
+                console.log('✅ Categorias carregadas do Supabase:', categories.length);
+                return categories;
+            }
+        } catch (error) {
+            console.error('❌ Erro ao carregar categorias:', error);
         }
         
-        const products = await response.json();
-        console.log('✅ Produtos do backend:', products);
-
-        // Formata os produtos
-        return products.map(product => ({
-            id: product.id,
-            name: product.name,
-            price: parseFloat(product.price),
-            category_id: product.category_id,
-            category: product.category_name || product.category || 'Geral',
-            image: product.image || 'https://via.placeholder.com/300x300?text=Produto',
-            rating: product.rating || 4.5,
-            reviewCount: product.review_count || Math.floor(Math.random() * 200) + 50
-        }));
-        
-    } catch (error) {
-        console.error('❌ Erro ao carregar produtos:', error);
-        
-        // Fallback local
+        // Fallback para categorias locais
+        console.log('🔄 Usando categorias locais');
         return [
-            {
-                id: 1,
-                name: "Kit Maquiagem Profissional",
-                price: 89.90,
-                category: "Maquiagem",
-                image: "https://via.placeholder.com/300x300/FF69B4/FFFFFF?text=Maquiagem",
-                rating: 4.8,
-                reviewCount: 127
-            },
-            {
-                id: 2,
-                name: "Shampoo Reconstrutor",
-                price: 34.50,
-                category: "Cabelos",
-                image: "https://via.placeholder.com/300x300/9370DB/FFFFFF?text=Shampoo",
-                rating: 4.6,
-                reviewCount: 89
-            }
+            { id: 1, name: "Maquiagem", status: "active" },
+            { id: 2, name: "Skincare", status: "active" },
+            { id: 3, name: "Cabelos", status: "active" },
+            { id: 4, name: "Perfumes", status: "active" },
+            { id: 5, name: "Corpo e Banho", status: "active" }
         ];
     }
-}
 
-// ========== FUNÇÃO PARA CARREGAR CATEGORIAS DO SEU BACKEND ==========
-async function loadCategoriesFromAPI() {
-    try {
-        console.log('🔄 Carregando categorias do SEU backend...');
-        
-        const response = await fetch('/api/categories');
-        
-        if (!response.ok) {
-            throw new Error(`Erro: ${response.status}`);
-        }
-        
-        const categories = await response.json();
-        console.log('✅ Categorias do backend:', categories);
-        
-        return categories;
-        
-    } catch (error) {
-        console.error('❌ Erro ao carregar categorias:', error);
-        
-        // Fallback local
-        return [
-            { id: 1, name: "Maquiagem" },
-            { id: 2, name: "Skincare" },
-            { id: 3, name: "Cabelos" },
-            { id: 4, name: "Perfumes" },
-            { id: 5, name: "Corpo e Banho" }
-        ];
-    }
-}
-
-// ========== INICIALIZAÇÃO ==========
-document.addEventListener('DOMContentLoaded', async function() {
-    console.log('🚀 Iniciando aplicação...');
-    await loadProducts();
-    await updateCategoryButtons();
-    setupEventListeners();
-    loadCartFromStorage();
-    updateCartCounter();
-});
-
-// ========== FUNÇÃO PRINCIPAL PARA CARREGAR PRODUTOS NA PÁGINA ==========
-async function loadProducts() {
-    const productsContainer = document.getElementById('products-container');
-    
-    if (!productsContainer) {
-        console.error('❌ Container de produtos não encontrado');
-        return;
-    }
-    
-    productsContainer.innerHTML = '<div class="loading">Carregando produtos...</div>';
-    
-    currentProducts = await loadProductsFromStorage();
-    
-    productsContainer.innerHTML = '';
-    
-    if (currentProducts.length === 0) {
-        productsContainer.innerHTML = `
-            <div style="text-align: center; padding: 3rem; grid-column: 1 / -1;">
-                <i class="fas fa-box-open" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
-                <h3 style="color: #666; margin-bottom: 1rem;">Nenhum produto disponível</h3>
-                <p style="color: #999;">Os produtos serão adicionados em breve.</p>
-            </div>
-        `;
-        return;
-    }
-    
-    // Renderiza os produtos
-    currentProducts.forEach(product => {
-        const productCard = document.createElement('div');
-        productCard.className = 'product-card';
-        productCard.innerHTML = `
-            <img src="${product.image}" alt="${product.name}" class="product-image"
-                 onerror="this.src='https://via.placeholder.com/300x300?text=Produto'">
-            <div class="product-info">
-                <h3 class="product-title">${product.name}</h3>
-                <div class="product-price">R$ ${product.price.toFixed(2)}</div>
-                <div class="product-rating">
-                    <div class="stars">
-                        ${generateStars(product.rating)}
-                    </div>
-                    <span>(${product.reviewCount})</span>
-                </div>
-                <div class="product-actions">
-                    <button class="buy-now-btn" onclick="buyNow(${product.id})">
-                        <i class="fab fa-whatsapp"></i> Comprar Agora
-                    </button>
-                    <button class="add-to-cart-btn" onclick="addToCart(${product.id})">
-                        <i class="fas fa-shopping-cart"></i> Carrinho
-                    </button>
-                </div>
-            </div>
-        `;
-        productsContainer.appendChild(productCard);
-    });
-}
-
-// ========== FUNÇÕES DE CATEGORIA ==========
-async function updateCategoryButtons() {
-    try {
-        const categories = await loadCategoriesFromAPI();
-        const categoriesContainer = document.querySelector('.categories');
-        
-        if (!categoriesContainer) return;
-        
-        // Limpa categorias existentes (exceto "Todos")
-        const existingButtons = categoriesContainer.querySelectorAll('.category-btn');
-        existingButtons.forEach(btn => {
-            if (btn.getAttribute('data-category-id') !== 'all') {
-                btn.remove();
+    // Função para atualizar botões de categoria - CORRIGIDA
+    async function updateCategoryButtons() {
+        try {
+            const categories = await loadCategoriesFromAPI();
+            const categoriesContainer = document.querySelector('.categories');
+            
+            if (!categoriesContainer) {
+                console.error('❌ Container de categorias não encontrado');
+                return;
             }
-        });
-        
-        // Adiciona categorias
-        categories.forEach(category => {
-            const button = document.createElement('button');
-            button.className = 'category-btn';
-            button.setAttribute('data-category-id', category.id);
-            button.textContent = category.name;
-            button.addEventListener('click', function() {
-                filterProductsByCategory(category.id);
+            
+            // Limpa categorias existentes (exceto "Todos")
+            const existingButtons = categoriesContainer.querySelectorAll('.category-btn');
+            existingButtons.forEach(btn => {
+                if (btn.getAttribute('data-category-id') !== 'all') {
+                    btn.remove();
+                }
             });
             
-            categoriesContainer.appendChild(button);
+            // Adiciona categorias
+            categories.forEach(category => {
+                const button = document.createElement('button');
+                button.className = 'category-btn';
+                button.setAttribute('data-category-id', category.id);
+                button.textContent = category.name;
+                button.addEventListener('click', function() {
+                    filterProductsByCategory(category.id);
+                });
+                
+                categoriesContainer.appendChild(button);
+            });
+            
+            console.log('✅ Botões de categoria atualizados');
+        } catch (error) {
+            console.error('❌ Erro ao atualizar botões de categoria:', error);
+        }
+    }
+
+    // Função para filtrar produtos por categoria - CORRIGIDA
+    function filterProductsByCategory(categoryId) {
+        console.log('🎯 Filtrando produtos por categoria ID:', categoryId);
+        
+        // Remove a classe active de todos os botões
+        document.querySelectorAll('.category-btn').forEach(btn => {
+            btn.classList.remove('active');
         });
         
-    } catch (error) {
-        console.error('❌ Erro ao atualizar categorias:', error);
+        // Adiciona active no botão clicado
+        event.target.classList.add('active');
+        
+        // Se for "Todos", mostra todos os produtos
+        if (categoryId === 'all') {
+            loadProducts();
+            return;
+        }
+        
+        // Filtra os produtos pela categoria ID
+        const filteredProducts = currentProducts.filter(product => 
+            product.category_id == categoryId || product.category === categoryId
+        );
+        
+        renderFilteredProducts(filteredProducts);
     }
-}
 
-function filterProductsByCategory(categoryId) {
-    // Remove a classe active de todos os botões
-    document.querySelectorAll('.category-btn').forEach(btn => {
-        btn.classList.remove('active');
+    // ========== INICIALIZAÇÃO ==========
+    document.addEventListener('DOMContentLoaded', async function() {
+        console.log('🚀 Iniciando aplicação...');
+        await loadProducts();
+        await updateCategoryButtons();
+        setupEventListeners();
+        checkUserAuth();
+        loadCartFromStorage();
+        updateCartCounter();
     });
-    
-    // Adiciona active no botão clicado
-    event.target.classList.add('active');
-    
-    // Se for "Todos", mostra todos os produtos
-    if (categoryId === 'all') {
-        loadProducts();
-        return;
-    }
-    
-    // Filtra os produtos pela categoria ID
-    const filteredProducts = currentProducts.filter(product => 
-        product.category_id == categoryId
-    );
-    
-    renderFilteredProducts(filteredProducts);
-}
 
-function renderFilteredProducts(filteredProducts) {
-    const productsContainer = document.getElementById('products-container');
-    productsContainer.innerHTML = '';
-    
-    if (filteredProducts.length === 0) {
-        productsContainer.innerHTML = `
-            <div style="text-align: center; padding: 3rem; grid-column: 1 / -1;">
-                <i class="fas fa-search" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
-                <h3 style="color: #666; margin-bottom: 1rem;">Nenhum produto encontrado</h3>
-                <p style="color: #999;">Tente outra categoria.</p>
-            </div>
-        `;
-        return;
-    }
-    
-    filteredProducts.forEach(product => {
-        const productCard = document.createElement('div');
-        productCard.className = 'product-card';
-        productCard.innerHTML = `
-            <img src="${product.image}" alt="${product.name}" class="product-image"
-                 onerror="this.src='https://via.placeholder.com/300x300?text=Produto'">
-            <div class="product-info">
-                <h3 class="product-title">${product.name}</h3>
-                <div class="product-price">R$ ${product.price.toFixed(2)}</div>
-                <div class="product-rating">
-                    <div class="stars">
-                        ${generateStars(product.rating)}
+    // Carregar produtos na página - CORRIGIDA
+    async function loadProducts() {
+        const productsContainer = document.getElementById('products-container');
+        
+        if (!productsContainer) {
+            console.error('❌ Container de produtos não encontrado');
+            return;
+        }
+        
+        productsContainer.innerHTML = '<div class="loading">Carregando produtos...</div>';
+        
+        currentProducts = await loadProductsFromStorage();
+        
+        productsContainer.innerHTML = '';
+        
+        if (currentProducts.length === 0) {
+            productsContainer.innerHTML = `
+                <div style="text-align: center; padding: 3rem; grid-column: 1 / -1;">
+                    <i class="fas fa-box-open" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
+                    <h3 style="color: #666; margin-bottom: 1rem;">Nenhum produto disponível</h3>
+                    <p style="color: #999;">Os produtos serão adicionados em breve.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        currentProducts.forEach(product => {
+            const productCard = document.createElement('div');
+            productCard.className = 'product-card';
+            productCard.innerHTML = `
+                <img src="${product.image}" alt="${product.name}" class="product-image"
+                     onerror="this.src='https://via.placeholder.com/300x300?text=Produto+Sem+Imagem'">
+                <div class="product-info">
+                    <h3 class="product-title">${product.name}</h3>
+                    <div class="product-price">R$ ${product.price.toFixed(2)}</div>
+                    <div class="product-rating">
+                        <div class="stars">
+                            ${generateStars(product.rating)}
+                        </div>
+                        <span>(${product.reviewCount})</span>
                     </div>
-                    <span>(${product.reviewCount})</span>
+                    <div class="product-actions">
+                        <button class="buy-now-btn" onclick="buyNow(${product.id})">
+                            <i class="fab fa-whatsapp"></i> Comprar Agora
+                        </button>
+                        <button class="add-to-cart-btn" onclick="addToCart(${product.id})">
+                            <i class="fas fa-shopping-cart"></i> Carrinho
+                        </button>
+                    </div>
                 </div>
-                <div class="product-actions">
-                    <button class="buy-now-btn" onclick="buyNow(${product.id})">
-                        <i class="fab fa-whatsapp"></i> Comprar Agora
-                    </button>
-                    <button class="add-to-cart-btn" onclick="addToCart(${product.id})">
-                        <i class="fas fa-shopping-cart"></i> Carrinho
-                    </button>
-                </div>
-            </div>
-        `;
-        productsContainer.appendChild(productCard);
-    });
-}
-
-// ========== FUNÇÕES AUXILIARES ==========
-function generateStars(rating) {
-    const fullStars = Math.floor(rating);
-    const halfStar = rating % 1 >= 0.5;
-    const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
-    
-    let stars = '';
-    for (let i = 0; i < fullStars; i++) stars += '<i class="fas fa-star"></i>';
-    if (halfStar) stars += '<i class="fas fa-star-half-alt"></i>';
-    for (let i = 0; i < emptyStars; i++) stars += '<i class="far fa-star"></i>';
-    return stars;
-}
-
-// ========== MANTENHA AS OUTRAS FUNÇÕES DO CARRINHO ==========
-// (addToCart, removeFromCart, updateQuantity, saveCartToStorage, loadCartFromStorage, 
-// updateCartCounter, updateCartDisplay, checkout, buyNow, showNotification, setupEventListeners)
-
-// ... Cole aqui TODAS as outras funções do seu código original ...
-// (as funções do carrinho, usuário, etc. que já estavam funcionando)
+            `;
+            productsContainer.appendChild(productCard);
+        });
+    }
 
     // ========== FUNÇÕES DO CARRINHO (MANTIDAS) ==========
     function addToCart(productId) {
