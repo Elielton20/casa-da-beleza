@@ -549,21 +549,29 @@ app.get('/api/admin/orders', authenticateToken, async (req, res) => {
 });
 
 // Gerenciar Produtos (Admin)
-app.get('/api/admin/products', authenticateToken, async (req, res) => {
-    console.log('📦 Buscando produtos para admin');
+// No seu backend, na rota do admin, use ESTA query:
+app.get('/api/admin/products', async (req, res) => {
     try {
+        console.log('🔄 Buscando produtos para admin...');
+        
+        // Query MUITO simples - apenas colunas essenciais
         const { data: products, error } = await supabase
             .from('products')
-            .select('*')
-            .order('created_at', { ascending: false });
+            .select('id, name, price, category_id')
+            .order('id', { ascending: true }) // Ordenar por ID é mais rápido
+            .limit(30); // Limite específico
 
-        if (error) throw error;
+        if (error) {
+            console.error('❌ Erro admin:', error);
+            return res.status(500).json({ error: error.message });
+        }
 
         console.log(`✅ ${products?.length || 0} produtos encontrados para admin`);
         res.json(products || []);
+        
     } catch (error) {
-        console.error('❌ Erro ao buscar produtos:', error);
-        res.status(500).json({ error: 'Erro ao buscar produtos' });
+        console.error('💥 Erro grave no admin:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
     }
 });
 
