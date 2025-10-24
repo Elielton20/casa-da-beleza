@@ -159,56 +159,72 @@ app.get('/admin-panel.html', (req, res) => {
 // ========== ROTAS SIMPLIFICADAS PARA TESTE ==========
 
 // Buscar produtos (SEM autenticação para teste)
-// Rota de produtos com Supabase Storage
 app.get('/api/products', async (req, res) => {
-    console.log('📦 Buscando produtos (Supabase Storage)...');
+    console.log('📦 Buscando produtos...');
     try {
         const { data: products, error } = await supabase
             .from('products')
-            .select('id, name, price, category_id, description, stock')
+            .select('*')
             .eq('status', 'active')
-            .order('name')
-            .limit(50);
+            .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+            console.log('❌ Erro ao buscar produtos:', error);
+            return res.status(500).json({ error: 'Erro ao buscar produtos' });
+        }
 
         console.log(`✅ ${products?.length || 0} produtos encontrados`);
         
-        // Buscar categorias
-        const categoryIds = [...new Set(products.map(p => p.category_id))];
-        const { data: categories } = await supabase
-            .from('categories')
-            .select('id, name')
-            .in('id', categoryIds);
-
-        const categoryMap = {};
-        categories?.forEach(cat => {
-            categoryMap[cat.id] = cat.name;
-        });
-
-        // Formatar produtos com URLs do Supabase Storage
-        const formattedProducts = products.map(product => {
-            // Gera URL da imagem no Supabase Storage
-            const imageUrl = `https://${supabaseUrl.replace('https://', '')}/storage/v1/object/public/product-images/product-${product.id}.jpg`;
-            
-            return {
-                id: product.id,
-                name: product.name,
-                price: parseFloat(product.price),
-                category_id: product.category_id,
-                category_name: categoryMap[product.category_id] || 'Geral',
-                image: imageUrl, // ← URL do Supabase Storage
-                description: product.description,
-                stock: product.stock,
-                rating: 4.5,
-                review_count: Math.floor(Math.random() * 200) + 50
-            };
-        });
+        // Formatar produtos
+        const formattedProducts = (products || []).map(product => ({
+            id: product.id,
+            name: product.name,
+            price: parseFloat(product.price),
+            category_name: product.category_name || 'Sem categoria',
+            image: product.image,
+            description: product.description,
+            stock: product.stock,
+            rating: parseFloat(product.rating) || 4.5,
+            review_count: product.review_count || Math.floor(Math.random() * 200) + 50
+        }));
 
         res.json(formattedProducts);
     } catch (error) {
         console.error('❌ Erro ao buscar produtos:', error);
         res.status(500).json({ error: 'Erro ao buscar produtos' });
+    }
+});
+
+// Buscar categorias (SEM autenticação para teste)
+app.get('/api/categories', async (req, res) => {
+    console.log('📂 Buscando categorias...');
+    try {
+        // Busca os produtos com categorias
+const { data: produtos, error: produtosError } = await supabase
+    .from('products')
+    .select(`
+        *,
+        categories (name)
+    `)
+    .order('name');
+
+// Busca categorias para outros usos (se necessário)
+const { data: categories, error: categoriesError } = await supabase
+    .from('categories')
+    .select('*')
+    .eq('status', 'active')
+    .order('name');
+
+        if (error) {
+            console.log('❌ Erro ao buscar categorias:', error);
+            return res.status(500).json({ error: 'Erro ao buscar categorias' });
+        }
+
+        console.log(`✅ ${categories?.length || 0} categorias encontradas`);
+        res.json(categories || []);
+    } catch (error) {
+        console.error('❌ Erro ao buscar categorias:', error);
+        res.status(500).json({ error: 'Erro ao buscar categorias' });
     }
 });
 
@@ -551,36 +567,36 @@ app.get('/api/admin/products', authenticateToken, async (req, res) => {
     }
 });
 
-// Rota para upload de imagem (Admin)
-app.post('/api/admin/products/:id/image', authenticateToken, async (req, res) => {
-    const { id } = req.params;
-    const { imageBase64 } = req.body; // Imagem em base64 do frontend
+app.post('/api/admin/products', authenticateToken, async (req, res) => {
+    console.log('➕ Criando novo produto');
+    const { name, price, category_id, image, description, stock, status } = req.body;
 
     try {
-        // Converter base64 para buffer
-        const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-        const imageBuffer = Buffer.from(base64Data, 'base64');
-
-        // Fazer upload para Supabase Storage
-        const { data, error } = await supabase.storage
-            .from('product-images')
-            .upload(`product-${id}.jpg`, imageBuffer, {
-                contentType: 'image/jpeg',
-                upsert: true // Substitui se já existir
-            });
+        const { data: newProduct, error } = await supabase
+            .from('products')
+            .insert([
+                {
+                    name,
+                    price,
+                    category_id,
+                    image,
+                    description,
+                    stock,
+                    status: status || 'active'
+                }
+            ])
+            .select();
 
         if (error) throw error;
 
-        console.log('✅ Imagem salva no Supabase Storage');
-        res.json({ 
-            success: true, 
-            imageUrl: `https://${supabaseUrl.replace('https://', '')}/storage/v1/object/public/product-images/product-${id}.jpg`
-        });
+        console.log('✅ Produto criado com sucesso');
+        res.status(201).json(newProduct[0]);
     } catch (error) {
-        console.error('❌ Erro ao fazer upload da imagem:', error);
-        res.status(500).json({ error: 'Erro ao salvar imagem' });
+        console.error('❌ Erro ao criar produto:', error);
+        res.status(500).json({ error: 'Erro ao criar produto' });
     }
 });
+
 app.put('/api/admin/products/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const { name, price, category_id, image, description, stock, status } = req.body;
