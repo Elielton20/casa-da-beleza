@@ -509,7 +509,13 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        productsContainer.innerHTML = '<div class="loading">Carregando produtos...</div>';
+       productsContainer.innerHTML = `
+    <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Carregando produtos...</p>
+    </div>
+`;
+
         
         currentProducts = await loadProductsFromStorage();
         
