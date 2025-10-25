@@ -35,6 +35,7 @@ app.use(cors());
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true })); // ← ADICIONE ESTA LINHA
 app.use(express.static(path.join(__dirname, '../frontend')));
+app.use('/images', express.static('public/images'));
 
 const JWT_SECRET = process.env.JWT_SECRET || 'seu_jwt_secret_super_seguro_aqui';
 
