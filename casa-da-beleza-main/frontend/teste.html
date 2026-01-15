@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Casa da Beleza - Teste</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .produto { border: 1px solid #ccc; padding: 15px; margin: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Teste de Produtos</h1>
+    <div id="produtos"></div>
+    
+    <script>
+        // Teste DIRETO da API
+        async function carregarProdutos() {
+            console.log("Testando API...");
+            
+            try {
+                // Tente diferentes endpoints
+                const endpoints = [
+                    '/api/produtos',
+                    '/produtos',
+                    'http://localhost:3000/api/produtos'
+                ];
+                
+                for (let endpoint of endpoints) {
+                    console.log(`Tentando ${endpoint}...`);
+                    
+                    const response = await fetch(endpoint);
+                    if (response.ok) {
+                        const produtos = await response.json();
+                        console.log(`✅ Sucesso! ${produtos.length} produtos`);
+                        
+                        // Mostra produtos na página
+                        let html = '<h2>Produtos:</h2>';
+                        produtos.forEach(p => {
+                            html += `
+                                <div class="produto">
+                                    <h3>${p.nome || p.title || 'Sem nome'}</h3>
+                                    <p>Preço: R$ ${p.preco || p.price || '0.00'}</p>
+                                </div>
+                            `;
+                        });
+                        
+                        document.getElementById('produtos').innerHTML = html;
+                        return;
+                    }
+                }
+                
+                console.error("❌ Nenhum endpoint funcionou");
+                document.getElementById('produtos').innerHTML = 
+                    '<p style="color: red;">API não encontrada</p>';
+                    
+            } catch (error) {
+                console.error("Erro:", error);
+                document.getElementById('produtos').innerHTML = 
+                    `<p style="color: red;">Erro: ${error.message}</p>`;
+            }
+        }
+        
+        // Executa quando a página carrega
+        carregarProdutos();
+    </script>
+</body>
+</html>
